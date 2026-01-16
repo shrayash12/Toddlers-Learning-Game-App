@@ -22,7 +22,7 @@ class _AnimalsScreenState extends State<AnimalsScreen>
       'name': 'Dog',
       'emoji': '🐕',
       'sound': 'Woof! Woof!',
-      'audioUrl': 'https://www.soundjay.com/animals/dog-barking-01.mp3',
+      'audioFile': 'sounds/dog.mp3',
       'color': Colors.brown,
       'fact': 'Dogs are loyal friends!'
     },
@@ -30,7 +30,7 @@ class _AnimalsScreenState extends State<AnimalsScreen>
       'name': 'Cat',
       'emoji': '🐱',
       'sound': 'Meow! Meow!',
-      'audioUrl': 'https://www.soundjay.com/animals/cat-meow-01.mp3',
+      'audioFile': 'sounds/cat.mp3',
       'color': Colors.orange,
       'fact': 'Cats love to sleep!'
     },
@@ -38,7 +38,7 @@ class _AnimalsScreenState extends State<AnimalsScreen>
       'name': 'Cow',
       'emoji': '🐄',
       'sound': 'Moo! Moo!',
-      'audioUrl': 'https://www.soundjay.com/animals/cow-moo-01.mp3',
+      'audioFile': 'sounds/cow.mp3',
       'color': Colors.black87,
       'fact': 'Cows give us milk!'
     },
@@ -46,7 +46,7 @@ class _AnimalsScreenState extends State<AnimalsScreen>
       'name': 'Duck',
       'emoji': '🦆',
       'sound': 'Quack! Quack!',
-      'audioUrl': 'https://www.soundjay.com/animals/duck-quack-01.mp3',
+      'audioFile': 'sounds/duck.mp3',
       'color': Colors.amber,
       'fact': 'Ducks love water!'
     },
@@ -54,7 +54,7 @@ class _AnimalsScreenState extends State<AnimalsScreen>
       'name': 'Lion',
       'emoji': '🦁',
       'sound': 'Roar! Roar!',
-      'audioUrl': 'https://www.soundjay.com/animals/lion-roar-01.mp3',
+      'audioFile': 'sounds/lion.mp3',
       'color': Colors.yellow,
       'fact': 'Lions are the king of jungle!'
     },
@@ -62,7 +62,7 @@ class _AnimalsScreenState extends State<AnimalsScreen>
       'name': 'Elephant',
       'emoji': '🐘',
       'sound': 'Trumpet!',
-      'audioUrl': 'https://www.soundjay.com/animals/elephant-01.mp3',
+      'audioFile': 'sounds/elephant.mp3',
       'color': Colors.grey,
       'fact': 'Elephants have big ears!'
     },
@@ -70,7 +70,7 @@ class _AnimalsScreenState extends State<AnimalsScreen>
       'name': 'Pig',
       'emoji': '🐷',
       'sound': 'Oink! Oink!',
-      'audioUrl': 'https://www.soundjay.com/animals/pig-oink-01.mp3',
+      'audioFile': 'sounds/pig.mp3',
       'color': Colors.pink,
       'fact': 'Pigs are very smart!'
     },
@@ -78,7 +78,7 @@ class _AnimalsScreenState extends State<AnimalsScreen>
       'name': 'Horse',
       'emoji': '🐴',
       'sound': 'Neigh! Neigh!',
-      'audioUrl': 'https://www.soundjay.com/animals/horse-neigh-01.mp3',
+      'audioFile': 'sounds/horse.mp3',
       'color': Colors.brown,
       'fact': 'Horses can run fast!'
     },
@@ -86,7 +86,7 @@ class _AnimalsScreenState extends State<AnimalsScreen>
       'name': 'Sheep',
       'emoji': '🐑',
       'sound': 'Baa! Baa!',
-      'audioUrl': 'https://www.soundjay.com/animals/sheep-baa-01.mp3',
+      'audioFile': 'sounds/sheep.mp3',
       'color': Colors.grey,
       'fact': 'Sheep give us wool!'
     },
@@ -94,7 +94,7 @@ class _AnimalsScreenState extends State<AnimalsScreen>
       'name': 'Chicken',
       'emoji': '🐔',
       'sound': 'Cluck! Cluck!',
-      'audioUrl': 'https://www.soundjay.com/animals/chicken-01.mp3',
+      'audioFile': 'sounds/chicken.mp3',
       'color': Colors.red,
       'fact': 'Chickens lay eggs!'
     },
@@ -102,7 +102,7 @@ class _AnimalsScreenState extends State<AnimalsScreen>
       'name': 'Frog',
       'emoji': '🐸',
       'sound': 'Ribbit! Ribbit!',
-      'audioUrl': 'https://www.soundjay.com/animals/frog-croaking-01.mp3',
+      'audioFile': 'sounds/frog.mp3',
       'color': Colors.green,
       'fact': 'Frogs can jump high!'
     },
@@ -110,7 +110,7 @@ class _AnimalsScreenState extends State<AnimalsScreen>
       'name': 'Bird',
       'emoji': '🐦',
       'sound': 'Tweet! Tweet!',
-      'audioUrl': 'https://www.soundjay.com/animals/bird-chirping-01.mp3',
+      'audioFile': 'sounds/bird.mp3',
       'color': Colors.blue,
       'fact': 'Birds can fly in the sky!'
     },
@@ -156,7 +156,7 @@ class _AnimalsScreenState extends State<AnimalsScreen>
 
     try {
       await _audioPlayer.stop();
-      await _audioPlayer.play(UrlSource(animal['audioUrl'] as String));
+      await _audioPlayer.play(AssetSource(animal['audioFile'] as String));
     } catch (e) {
       debugPrint('Error playing sound: $e');
     }
