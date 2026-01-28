@@ -129,38 +129,101 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       },
                     ),
                     const SizedBox(height: 10),
-                    // Animated subtitle with bouncing emoji
+                    // Animated baby faces
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        // Boy face - bouncing up
                         AnimatedBuilder(
                           animation: _floatController,
                           builder: (context, child) {
                             return Transform.translate(
-                              offset: Offset(0, -5 * _floatController.value),
-                              child: const Text('🎮', style: TextStyle(fontSize: 24)),
+                              offset: Offset(
+                                math.sin(_floatController.value * math.pi * 2) * 5,
+                                -8 * math.sin(_floatController.value * math.pi),
+                              ),
+                              child: Transform.rotate(
+                                angle: math.sin(_floatController.value * math.pi * 2) * 0.1,
+                                child: const Text('👦🏻', style: TextStyle(fontSize: 40)),
+                              ),
                             );
                           },
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Choose an activity!',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.pink.shade400,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 12),
+                        // Girl face - bouncing delayed
                         AnimatedBuilder(
                           animation: _floatController,
                           builder: (context, child) {
                             return Transform.translate(
-                              offset: Offset(0, 5 * _floatController.value),
-                              child: const Text('🎯', style: TextStyle(fontSize: 24)),
+                              offset: Offset(
+                                0,
+                                -10 * math.sin((_floatController.value + 0.33) * math.pi),
+                              ),
+                              child: Transform.scale(
+                                scale: 1.0 + math.sin((_floatController.value + 0.33) * math.pi) * 0.1,
+                                child: const Text('👧🏻', style: TextStyle(fontSize: 44)),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 12),
+                        // Another child face - bouncing different phase
+                        AnimatedBuilder(
+                          animation: _floatController,
+                          builder: (context, child) {
+                            return Transform.translate(
+                              offset: Offset(
+                                math.sin((_floatController.value + 0.66) * math.pi * 2) * -5,
+                                -8 * math.sin((_floatController.value + 0.66) * math.pi),
+                              ),
+                              child: Transform.rotate(
+                                angle: math.sin((_floatController.value + 0.66) * math.pi * 2) * -0.1,
+                                child: const Text('🧒🏻', style: TextStyle(fontSize: 40)),
+                              ),
                             );
                           },
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Choose an activity text with sparkles
+                    AnimatedBuilder(
+                      animation: _pulseController,
+                      builder: (context, child) {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Transform.rotate(
+                              angle: _pulseController.value * math.pi * 0.2,
+                              child: Text(
+                                '✨',
+                                style: TextStyle(
+                                  fontSize: 18 + (_pulseController.value * 4),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Choose an activity!',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.pink.shade400,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Transform.rotate(
+                              angle: -_pulseController.value * math.pi * 0.2,
+                              child: Text(
+                                '✨',
+                                style: TextStyle(
+                                  fontSize: 18 + (_pulseController.value * 4),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 20),
                   ],
@@ -382,13 +445,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ),
 
+              // Learning Category
+              SliverToBoxAdapter(
+                child: _CategoryHeader(
+                  emoji: '📚',
+                  title: 'Learning',
+                  color: Colors.blue,
+                  floatController: _floatController,
+                ),
+              ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 1.0,
                   ),
                   delegate: SliverChildListDelegate([
                     _AnimatedPremiumCard(
@@ -406,7 +479,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       title: 'Math',
                       subtitle: 'Add & Subtract',
                       icon: Icons.calculate,
-                      color: Colors.green.shade400,
+                      color: Colors.green.shade500,
                       isPremium: _premiumService.isPremium,
                       delay: 1,
                       floatController: _floatController,
@@ -414,37 +487,60 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       onTap: () => _navigateToPremiumGame(context, const MathGameScreen()),
                     ),
                     _AnimatedPremiumCard(
-                      title: 'Puzzles',
-                      subtitle: 'Solve Puzzles',
-                      icon: Icons.extension,
-                      color: Colors.indigo.shade400,
-                      isPremium: _premiumService.isPremium,
-                      delay: 2,
-                      floatController: _floatController,
-                      pulseController: _pulseController,
-                      onTap: () => _navigateToPremiumGame(context, const PuzzleGameScreen()),
-                    ),
-                    _AnimatedPremiumCard(
                       title: 'Phonics',
                       subtitle: 'Letter Sounds',
                       icon: Icons.record_voice_over,
                       color: Colors.teal.shade400,
                       isPremium: _premiumService.isPremium,
-                      delay: 3,
+                      delay: 2,
                       floatController: _floatController,
                       pulseController: _pulseController,
                       onTap: () => _navigateToPremiumGame(context, const PhonicsGameScreen()),
                     ),
                     _AnimatedPremiumCard(
-                      title: 'Hide & Seek',
-                      subtitle: 'Find Animals',
-                      icon: Icons.visibility,
-                      color: Colors.pink.shade400,
+                      title: 'Organize',
+                      subtitle: 'Sort & Clean',
+                      icon: Icons.category,
+                      color: Colors.orange.shade500,
+                      isPremium: _premiumService.isPremium,
+                      delay: 3,
+                      floatController: _floatController,
+                      pulseController: _pulseController,
+                      onTap: () => _navigateToPremiumGame(context, const OrganizingGameScreen()),
+                    ),
+                  ]),
+                ),
+              ),
+
+              // Brain Games Category
+              SliverToBoxAdapter(
+                child: _CategoryHeader(
+                  emoji: '🧠',
+                  title: 'Brain Games',
+                  color: Colors.purple,
+                  floatController: _floatController,
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 1.0,
+                  ),
+                  delegate: SliverChildListDelegate([
+                    _AnimatedPremiumCard(
+                      title: 'Puzzles',
+                      subtitle: 'Solve Puzzles',
+                      icon: Icons.extension,
+                      color: Colors.indigo.shade400,
                       isPremium: _premiumService.isPremium,
                       delay: 4,
                       floatController: _floatController,
                       pulseController: _pulseController,
-                      onTap: () => _navigateToPremiumGame(context, const HideSeekGameScreen()),
+                      onTap: () => _navigateToPremiumGame(context, const PuzzleGameScreen()),
                     ),
                     _AnimatedPremiumCard(
                       title: 'Maze',
@@ -458,59 +554,105 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       onTap: () => _navigateToPremiumGame(context, const MazeGameScreen()),
                     ),
                     _AnimatedPremiumCard(
-                      title: 'Connect Dots',
-                      subtitle: 'Draw Shapes',
-                      icon: Icons.timeline,
-                      color: Colors.amber.shade600,
+                      title: 'Hide & Seek',
+                      subtitle: 'Find Animals',
+                      icon: Icons.visibility,
+                      color: Colors.pink.shade400,
                       isPremium: _premiumService.isPremium,
                       delay: 6,
                       floatController: _floatController,
                       pulseController: _pulseController,
-                      onTap: () => _navigateToPremiumGame(context, const ConnectDotsGameScreen()),
+                      onTap: () => _navigateToPremiumGame(context, const HideSeekGameScreen()),
                     ),
                     _AnimatedPremiumCard(
                       title: 'Differences',
                       subtitle: 'Spot Changes',
                       icon: Icons.compare,
-                      color: Colors.brown.shade400,
+                      color: Colors.blueGrey.shade400,
                       isPremium: _premiumService.isPremium,
                       delay: 7,
                       floatController: _floatController,
                       pulseController: _pulseController,
                       onTap: () => _navigateToPremiumGame(context, const FindDifferenceGameScreen()),
                     ),
+                  ]),
+                ),
+              ),
+
+              // Creative Category
+              SliverToBoxAdapter(
+                child: _CategoryHeader(
+                  emoji: '🎨',
+                  title: 'Creative',
+                  color: Colors.pink,
+                  floatController: _floatController,
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 1.0,
+                  ),
+                  delegate: SliverChildListDelegate([
                     _AnimatedPremiumCard(
-                      title: 'Draw Lines',
-                      subtitle: 'Trace & Learn',
-                      icon: Icons.gesture,
-                      color: Colors.cyan.shade600,
+                      title: 'Connect Dots',
+                      subtitle: 'Draw Shapes',
+                      icon: Icons.timeline,
+                      color: Colors.amber.shade600,
                       isPremium: _premiumService.isPremium,
                       delay: 8,
                       floatController: _floatController,
                       pulseController: _pulseController,
+                      onTap: () => _navigateToPremiumGame(context, const ConnectDotsGameScreen()),
+                    ),
+                    _AnimatedPremiumCard(
+                      title: 'Draw Lines',
+                      subtitle: 'Trace & Learn',
+                      icon: Icons.gesture,
+                      color: Colors.cyan.shade500,
+                      isPremium: _premiumService.isPremium,
+                      delay: 9,
+                      floatController: _floatController,
+                      pulseController: _pulseController,
                       onTap: () => _navigateToPremiumGame(context, const DrawLinesGameScreen()),
                     ),
+                  ]),
+                ),
+              ),
+
+              // Life Skills Category
+              SliverToBoxAdapter(
+                child: _CategoryHeader(
+                  emoji: '🌟',
+                  title: 'Life Skills',
+                  color: Colors.green,
+                  floatController: _floatController,
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 30),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 1.0,
+                  ),
+                  delegate: SliverChildListDelegate([
                     _AnimatedPremiumCard(
                       title: 'Potty Time',
                       subtitle: 'Fun Training',
                       icon: Icons.child_care,
                       color: Colors.lime.shade600,
                       isPremium: _premiumService.isPremium,
-                      delay: 9,
-                      floatController: _floatController,
-                      pulseController: _pulseController,
-                      onTap: () => _navigateToPremiumGame(context, const PottyTrainingGameScreen()),
-                    ),
-                    _AnimatedPremiumCard(
-                      title: 'Organize',
-                      subtitle: 'Sort & Clean',
-                      icon: Icons.category,
-                      color: Colors.orange.shade600,
-                      isPremium: _premiumService.isPremium,
                       delay: 10,
                       floatController: _floatController,
                       pulseController: _pulseController,
-                      onTap: () => _navigateToPremiumGame(context, const OrganizingGameScreen()),
+                      onTap: () => _navigateToPremiumGame(context, const PottyTrainingGameScreen()),
                     ),
                   ]),
                 ),
@@ -544,6 +686,90 @@ class _AnimatedIcon extends StatelessWidget {
           child: Icon(icon, color: color),
         );
       },
+    );
+  }
+}
+
+class _CategoryHeader extends StatelessWidget {
+  final String emoji;
+  final String title;
+  final Color color;
+  final AnimationController floatController;
+
+  const _CategoryHeader({
+    required this.emoji,
+    required this.title,
+    required this.color,
+    required this.floatController,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              color.withOpacity(0.15),
+              color.withOpacity(0.05),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(
+            color: color.withOpacity(0.3),
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            AnimatedBuilder(
+              animation: floatController,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(0, math.sin(floatController.value * math.pi) * 3),
+                  child: Text(
+                    emoji,
+                    style: const TextStyle(fontSize: 24),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(width: 10),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.star, size: 14, color: color),
+                  const SizedBox(width: 4),
+                  Text(
+                    'PRO',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
