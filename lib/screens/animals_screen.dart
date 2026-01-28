@@ -127,6 +127,9 @@ class _AnimalsScreenState extends State<AnimalsScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.elasticIn),
     );
 
+
+
+
     _audioPlayer.onPlayerStateChanged.listen((state) {
       if (mounted) {
         setState(() {

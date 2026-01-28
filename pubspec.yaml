@@ -44,6 +44,9 @@ dependencies:
   # Text to speech for animal sounds
   flutter_tts: ^4.2.0
 
+  # Local storage for premium status
+  shared_preferences: ^2.2.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
