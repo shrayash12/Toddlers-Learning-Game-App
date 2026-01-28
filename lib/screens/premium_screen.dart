@@ -51,7 +51,7 @@ class PremiumScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Get access to 5 amazing educational games',
+                        'Get access to 4 amazing educational games',
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.white.withOpacity(0.9),
@@ -78,11 +78,6 @@ class PremiumScreen extends StatelessWidget {
                         icon: Icons.record_voice_over,
                         title: 'Phonics Game',
                         description: 'Learn letter sounds and pronunciation',
-                      ),
-                      _FeatureItem(
-                        icon: Icons.search,
-                        title: 'Seek & Find',
-                        description: 'Find hidden objects and circle them',
                       ),
                       const SizedBox(height: 40),
                       Container(

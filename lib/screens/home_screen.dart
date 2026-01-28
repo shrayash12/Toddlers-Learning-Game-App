@@ -10,7 +10,6 @@ import 'spelling_game_screen.dart';
 import 'math_game_screen.dart';
 import 'puzzle_game_screen.dart';
 import 'phonics_game_screen.dart';
-import 'seek_find_game_screen.dart';
 import '../services/premium_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -299,14 +298,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: Colors.teal.shade400,
                       isPremium: _premiumService.isPremium,
                       onTap: () => _navigateToPremiumGame(context, const PhonicsGameScreen()),
-                    ),
-                    _PremiumActivityCard(
-                      title: 'Seek & Find',
-                      subtitle: 'Find Objects',
-                      icon: Icons.search,
-                      color: Colors.pink.shade400,
-                      isPremium: _premiumService.isPremium,
-                      onTap: () => _navigateToPremiumGame(context, const SeekFindGameScreen()),
                     ),
                   ]),
                 ),
