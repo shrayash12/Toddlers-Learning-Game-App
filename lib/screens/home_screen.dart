@@ -10,6 +10,13 @@ import 'spelling_game_screen.dart';
 import 'math_game_screen.dart';
 import 'puzzle_game_screen.dart';
 import 'phonics_game_screen.dart';
+import 'hide_seek_game_screen.dart';
+import 'maze_game_screen.dart';
+import 'connect_dots_game_screen.dart';
+import 'find_difference_game_screen.dart';
+import 'draw_lines_game_screen.dart';
+import 'potty_training_game_screen.dart';
+import 'organizing_game_screen.dart';
 import '../services/premium_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -298,6 +305,62 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: Colors.teal.shade400,
                       isPremium: _premiumService.isPremium,
                       onTap: () => _navigateToPremiumGame(context, const PhonicsGameScreen()),
+                    ),
+                    _PremiumActivityCard(
+                      title: 'Hide & Seek',
+                      subtitle: 'Find Animals',
+                      icon: Icons.visibility,
+                      color: Colors.pink.shade400,
+                      isPremium: _premiumService.isPremium,
+                      onTap: () => _navigateToPremiumGame(context, const HideSeekGameScreen()),
+                    ),
+                    _PremiumActivityCard(
+                      title: 'Maze',
+                      subtitle: 'Find the Path',
+                      icon: Icons.route,
+                      color: Colors.deepPurple.shade400,
+                      isPremium: _premiumService.isPremium,
+                      onTap: () => _navigateToPremiumGame(context, const MazeGameScreen()),
+                    ),
+                    _PremiumActivityCard(
+                      title: 'Connect Dots',
+                      subtitle: 'Draw Shapes',
+                      icon: Icons.timeline,
+                      color: Colors.amber.shade600,
+                      isPremium: _premiumService.isPremium,
+                      onTap: () => _navigateToPremiumGame(context, const ConnectDotsGameScreen()),
+                    ),
+                    _PremiumActivityCard(
+                      title: 'Differences',
+                      subtitle: 'Spot Changes',
+                      icon: Icons.compare,
+                      color: Colors.brown.shade400,
+                      isPremium: _premiumService.isPremium,
+                      onTap: () => _navigateToPremiumGame(context, const FindDifferenceGameScreen()),
+                    ),
+                    _PremiumActivityCard(
+                      title: 'Draw Lines',
+                      subtitle: 'Trace & Learn',
+                      icon: Icons.gesture,
+                      color: Colors.cyan.shade600,
+                      isPremium: _premiumService.isPremium,
+                      onTap: () => _navigateToPremiumGame(context, const DrawLinesGameScreen()),
+                    ),
+                    _PremiumActivityCard(
+                      title: 'Potty Time',
+                      subtitle: 'Fun Training',
+                      icon: Icons.child_care,
+                      color: Colors.lime.shade600,
+                      isPremium: _premiumService.isPremium,
+                      onTap: () => _navigateToPremiumGame(context, const PottyTrainingGameScreen()),
+                    ),
+                    _PremiumActivityCard(
+                      title: 'Organize',
+                      subtitle: 'Sort & Clean',
+                      icon: Icons.category,
+                      color: Colors.orange.shade600,
+                      isPremium: _premiumService.isPremium,
+                      onTap: () => _navigateToPremiumGame(context, const OrganizingGameScreen()),
                     ),
                   ]),
                 ),

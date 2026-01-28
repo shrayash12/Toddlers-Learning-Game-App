@@ -51,7 +51,7 @@ class PremiumScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Get access to 4 amazing educational games',
+                        'Get access to 11 amazing educational games',
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.white.withOpacity(0.9),
@@ -78,6 +78,41 @@ class PremiumScreen extends StatelessWidget {
                         icon: Icons.record_voice_over,
                         title: 'Phonics Game',
                         description: 'Learn letter sounds and pronunciation',
+                      ),
+                      _FeatureItem(
+                        icon: Icons.visibility,
+                        title: 'Hide & Seek',
+                        description: 'Find hidden animals behind objects',
+                      ),
+                      _FeatureItem(
+                        icon: Icons.route,
+                        title: 'Maze Fun',
+                        description: 'Navigate through fun mazes',
+                      ),
+                      _FeatureItem(
+                        icon: Icons.timeline,
+                        title: 'Connect the Dots',
+                        description: 'Connect dots to reveal pictures',
+                      ),
+                      _FeatureItem(
+                        icon: Icons.compare,
+                        title: 'Find Differences',
+                        description: 'Spot the differences between pictures',
+                      ),
+                      _FeatureItem(
+                        icon: Icons.gesture,
+                        title: 'Draw Lines',
+                        description: 'Practice drawing different line types',
+                      ),
+                      _FeatureItem(
+                        icon: Icons.child_care,
+                        title: 'Potty Training',
+                        description: 'Fun potty training encouragement',
+                      ),
+                      _FeatureItem(
+                        icon: Icons.category,
+                        title: 'Organizing Game',
+                        description: 'Sort and organize objects into groups',
                       ),
                       const SizedBox(height: 40),
                       Container(
