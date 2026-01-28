@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import 'abc_screen.dart';
 import 'numbers_screen.dart';
 import 'colors_shapes_screen.dart';
@@ -26,18 +27,50 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final PremiumService _premiumService = PremiumService();
+  late AnimationController _floatController;
+  late AnimationController _pulseController;
+  late AnimationController _wiggleController;
+  late AnimationController _starController;
 
   @override
   void initState() {
     super.initState();
     _premiumService.addListener(_onPremiumChange);
+
+    // Floating animation
+    _floatController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    // Pulse animation for premium badge
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    // Wiggle animation for icons
+    _wiggleController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    // Star rotation
+    _starController = AnimationController(
+      duration: const Duration(milliseconds: 3000),
+      vsync: this,
+    )..repeat();
   }
 
   @override
   void dispose() {
     _premiumService.removeListener(_onPremiumChange);
+    _floatController.dispose();
+    _pulseController.dispose();
+    _wiggleController.dispose();
+    _starController.dispose();
     super.dispose();
   }
 
@@ -71,28 +104,63 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 20),
-                    Text(
-                      'Baby Learning Games',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.pink.shade700,
-                        shadows: [
-                          Shadow(
-                            color: Colors.pink.shade200,
-                            offset: const Offset(2, 2),
-                            blurRadius: 4,
+                    // Animated title
+                    AnimatedBuilder(
+                      animation: _pulseController,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: 1.0 + (_pulseController.value * 0.05),
+                          child: Text(
+                            'Baby Learning Games',
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.pink.shade700,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.pink.shade200,
+                                  offset: const Offset(2, 2),
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                     const SizedBox(height: 10),
-                    Text(
-                      'Choose an activity!',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.pink.shade400,
-                      ),
+                    // Animated subtitle with bouncing emoji
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        AnimatedBuilder(
+                          animation: _floatController,
+                          builder: (context, child) {
+                            return Transform.translate(
+                              offset: Offset(0, -5 * _floatController.value),
+                              child: const Text('🎮', style: TextStyle(fontSize: 24)),
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Choose an activity!',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.pink.shade400,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        AnimatedBuilder(
+                          animation: _floatController,
+                          builder: (context, child) {
+                            return Transform.translate(
+                              offset: Offset(0, 5 * _floatController.value),
+                              child: const Text('🎯', style: TextStyle(fontSize: 24)),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 20),
                   ],
@@ -105,7 +173,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Row(
                     children: [
-                      Icon(Icons.games, color: Colors.pink.shade600),
+                      _AnimatedIcon(
+                        icon: Icons.games,
+                        color: Colors.pink.shade600,
+                        controller: _wiggleController,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Free Games',
@@ -114,6 +186,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           fontWeight: FontWeight.bold,
                           color: Colors.pink.shade600,
                         ),
+                      ),
+                      const Spacer(),
+                      AnimatedBuilder(
+                        animation: _floatController,
+                        builder: (context, child) {
+                          return Transform.translate(
+                            offset: Offset(3 * math.sin(_floatController.value * math.pi), 0),
+                            child: const Text('🆓', style: TextStyle(fontSize: 20)),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -129,61 +211,73 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisSpacing: 16,
                   ),
                   delegate: SliverChildListDelegate([
-                    _ActivityCard(
+                    _AnimatedActivityCard(
                       title: 'ABC',
                       subtitle: 'Learn Letters',
                       icon: Icons.abc,
                       color: Colors.red.shade300,
+                      delay: 0,
+                      floatController: _floatController,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const AbcScreen()),
                       ),
                     ),
-                    _ActivityCard(
+                    _AnimatedActivityCard(
                       title: '123',
                       subtitle: 'Count Numbers',
                       icon: Icons.numbers,
                       color: Colors.blue.shade300,
+                      delay: 1,
+                      floatController: _floatController,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const NumbersScreen()),
                       ),
                     ),
-                    _ActivityCard(
+                    _AnimatedActivityCard(
                       title: 'Colors',
                       subtitle: 'Colors & Shapes',
                       icon: Icons.palette,
                       color: Colors.green.shade300,
+                      delay: 2,
+                      floatController: _floatController,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const ColorsShapesScreen()),
                       ),
                     ),
-                    _ActivityCard(
+                    _AnimatedActivityCard(
                       title: 'Animals',
                       subtitle: 'Animal Sounds',
                       icon: Icons.pets,
                       color: Colors.orange.shade300,
+                      delay: 3,
+                      floatController: _floatController,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const AnimalsScreen()),
                       ),
                     ),
-                    _ActivityCard(
+                    _AnimatedActivityCard(
                       title: 'Quiz',
                       subtitle: 'Matching Game',
                       icon: Icons.quiz,
                       color: Colors.purple.shade300,
+                      delay: 4,
+                      floatController: _floatController,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const MatchingGameScreen()),
                       ),
                     ),
-                    _ActivityCard(
+                    _AnimatedActivityCard(
                       title: 'Memory',
                       subtitle: 'Card Game',
                       icon: Icons.grid_view_rounded,
                       color: Colors.teal.shade300,
+                      delay: 5,
+                      floatController: _floatController,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const MemoryGameScreen()),
@@ -199,7 +293,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   child: Row(
                     children: [
-                      Icon(Icons.star, color: Colors.amber.shade700),
+                      AnimatedBuilder(
+                        animation: _starController,
+                        builder: (context, child) {
+                          return Transform.rotate(
+                            angle: _starController.value * 2 * math.pi,
+                            child: Icon(Icons.star, color: Colors.amber.shade700),
+                          );
+                        },
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Premium Games',
@@ -211,33 +313,48 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const Spacer(),
                       if (!_premiumService.isPremium)
-                        GestureDetector(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const PremiumScreen()),
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFFFD700), Color(0xFFFF8C00)],
-                              ),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(Icons.lock_open, color: Colors.white, size: 16),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Unlock',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
+                        AnimatedBuilder(
+                          animation: _pulseController,
+                          builder: (context, child) {
+                            return Transform.scale(
+                              scale: 1.0 + (_pulseController.value * 0.1),
+                              child: GestureDetector(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const PremiumScreen()),
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [Color(0xFFFFD700), Color(0xFFFF8C00)],
+                                    ),
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.amber.withOpacity(0.5),
+                                        blurRadius: 10,
+                                        spreadRadius: _pulseController.value * 3,
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Row(
+                                    children: [
+                                      Icon(Icons.lock_open, color: Colors.white, size: 16),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Unlock',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
+                              ),
+                            );
+                          },
                         ),
                       if (_premiumService.isPremium)
                         Container(
@@ -274,92 +391,125 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisSpacing: 16,
                   ),
                   delegate: SliverChildListDelegate([
-                    _PremiumActivityCard(
+                    _AnimatedPremiumCard(
                       title: 'Spelling',
                       subtitle: 'Learn to Spell',
                       icon: Icons.spellcheck,
                       color: Colors.purple.shade400,
                       isPremium: _premiumService.isPremium,
+                      delay: 0,
+                      floatController: _floatController,
+                      pulseController: _pulseController,
                       onTap: () => _navigateToPremiumGame(context, const SpellingGameScreen()),
                     ),
-                    _PremiumActivityCard(
+                    _AnimatedPremiumCard(
                       title: 'Math',
                       subtitle: 'Add & Subtract',
                       icon: Icons.calculate,
                       color: Colors.green.shade400,
                       isPremium: _premiumService.isPremium,
+                      delay: 1,
+                      floatController: _floatController,
+                      pulseController: _pulseController,
                       onTap: () => _navigateToPremiumGame(context, const MathGameScreen()),
                     ),
-                    _PremiumActivityCard(
+                    _AnimatedPremiumCard(
                       title: 'Puzzles',
                       subtitle: 'Solve Puzzles',
                       icon: Icons.extension,
                       color: Colors.indigo.shade400,
                       isPremium: _premiumService.isPremium,
+                      delay: 2,
+                      floatController: _floatController,
+                      pulseController: _pulseController,
                       onTap: () => _navigateToPremiumGame(context, const PuzzleGameScreen()),
                     ),
-                    _PremiumActivityCard(
+                    _AnimatedPremiumCard(
                       title: 'Phonics',
                       subtitle: 'Letter Sounds',
                       icon: Icons.record_voice_over,
                       color: Colors.teal.shade400,
                       isPremium: _premiumService.isPremium,
+                      delay: 3,
+                      floatController: _floatController,
+                      pulseController: _pulseController,
                       onTap: () => _navigateToPremiumGame(context, const PhonicsGameScreen()),
                     ),
-                    _PremiumActivityCard(
+                    _AnimatedPremiumCard(
                       title: 'Hide & Seek',
                       subtitle: 'Find Animals',
                       icon: Icons.visibility,
                       color: Colors.pink.shade400,
                       isPremium: _premiumService.isPremium,
+                      delay: 4,
+                      floatController: _floatController,
+                      pulseController: _pulseController,
                       onTap: () => _navigateToPremiumGame(context, const HideSeekGameScreen()),
                     ),
-                    _PremiumActivityCard(
+                    _AnimatedPremiumCard(
                       title: 'Maze',
                       subtitle: 'Find the Path',
                       icon: Icons.route,
                       color: Colors.deepPurple.shade400,
                       isPremium: _premiumService.isPremium,
+                      delay: 5,
+                      floatController: _floatController,
+                      pulseController: _pulseController,
                       onTap: () => _navigateToPremiumGame(context, const MazeGameScreen()),
                     ),
-                    _PremiumActivityCard(
+                    _AnimatedPremiumCard(
                       title: 'Connect Dots',
                       subtitle: 'Draw Shapes',
                       icon: Icons.timeline,
                       color: Colors.amber.shade600,
                       isPremium: _premiumService.isPremium,
+                      delay: 6,
+                      floatController: _floatController,
+                      pulseController: _pulseController,
                       onTap: () => _navigateToPremiumGame(context, const ConnectDotsGameScreen()),
                     ),
-                    _PremiumActivityCard(
+                    _AnimatedPremiumCard(
                       title: 'Differences',
                       subtitle: 'Spot Changes',
                       icon: Icons.compare,
                       color: Colors.brown.shade400,
                       isPremium: _premiumService.isPremium,
+                      delay: 7,
+                      floatController: _floatController,
+                      pulseController: _pulseController,
                       onTap: () => _navigateToPremiumGame(context, const FindDifferenceGameScreen()),
                     ),
-                    _PremiumActivityCard(
+                    _AnimatedPremiumCard(
                       title: 'Draw Lines',
                       subtitle: 'Trace & Learn',
                       icon: Icons.gesture,
                       color: Colors.cyan.shade600,
                       isPremium: _premiumService.isPremium,
+                      delay: 8,
+                      floatController: _floatController,
+                      pulseController: _pulseController,
                       onTap: () => _navigateToPremiumGame(context, const DrawLinesGameScreen()),
                     ),
-                    _PremiumActivityCard(
+                    _AnimatedPremiumCard(
                       title: 'Potty Time',
                       subtitle: 'Fun Training',
                       icon: Icons.child_care,
                       color: Colors.lime.shade600,
                       isPremium: _premiumService.isPremium,
+                      delay: 9,
+                      floatController: _floatController,
+                      pulseController: _pulseController,
                       onTap: () => _navigateToPremiumGame(context, const PottyTrainingGameScreen()),
                     ),
-                    _PremiumActivityCard(
+                    _AnimatedPremiumCard(
                       title: 'Organize',
                       subtitle: 'Sort & Clean',
                       icon: Icons.category,
                       color: Colors.orange.shade600,
                       isPremium: _premiumService.isPremium,
+                      delay: 10,
+                      floatController: _floatController,
+                      pulseController: _pulseController,
                       onTap: () => _navigateToPremiumGame(context, const OrganizingGameScreen()),
                     ),
                   ]),
@@ -373,175 +523,351 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _ActivityCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
+class _AnimatedIcon extends StatelessWidget {
   final IconData icon;
   final Color color;
-  final VoidCallback onTap;
+  final AnimationController controller;
 
-  const _ActivityCard({
-    required this.title,
-    required this.subtitle,
+  const _AnimatedIcon({
     required this.icon,
     required this.color,
-    required this.onTap,
+    required this.controller,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(25),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.5),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 50,
-              color: Colors.white,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.white.withOpacity(0.9),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, child) {
+        return Transform.rotate(
+          angle: math.sin(controller.value * math.pi * 2) * 0.1,
+          child: Icon(icon, color: color),
+        );
+      },
     );
   }
 }
 
-class _PremiumActivityCard extends StatelessWidget {
+class _AnimatedActivityCard extends StatefulWidget {
   final String title;
   final String subtitle;
   final IconData icon;
   final Color color;
-  final bool isPremium;
+  final int delay;
+  final AnimationController floatController;
   final VoidCallback onTap;
 
-  const _PremiumActivityCard({
+  const _AnimatedActivityCard({
     required this.title,
     required this.subtitle,
     required this.icon,
     required this.color,
-    required this.isPremium,
+    required this.delay,
+    required this.floatController,
     required this.onTap,
   });
 
   @override
+  State<_AnimatedActivityCard> createState() => _AnimatedActivityCardState();
+}
+
+class _AnimatedActivityCardState extends State<_AnimatedActivityCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _scaleController;
+  bool _isPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scaleController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+      lowerBound: 0.95,
+      upperBound: 1.0,
+      value: 1.0,
+    );
+  }
+
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Each card has a different phase offset for the floating animation
+    final phaseOffset = widget.delay * 0.3;
+
     return GestureDetector(
-      onTap: onTap,
-      child: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: isPremium ? color : color.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(25),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withOpacity(isPremium ? 0.5 : 0.2),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  size: 50,
-                  color: Colors.white.withOpacity(isPremium ? 1 : 0.7),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white.withOpacity(isPremium ? 1 : 0.7),
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white.withOpacity(isPremium ? 0.9 : 0.6),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (!isPremium)
-            Positioned(
-              top: 10,
-              right: 10,
+      onTapDown: (_) {
+        setState(() => _isPressed = true);
+        _scaleController.reverse();
+      },
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        _scaleController.forward();
+        widget.onTap();
+      },
+      onTapCancel: () {
+        setState(() => _isPressed = false);
+        _scaleController.forward();
+      },
+      child: AnimatedBuilder(
+        animation: Listenable.merge([widget.floatController, _scaleController]),
+        builder: (context, child) {
+          final floatValue = math.sin((widget.floatController.value + phaseOffset) * math.pi);
+          return Transform.translate(
+            offset: Offset(0, floatValue * 4),
+            child: Transform.scale(
+              scale: _scaleController.value,
               child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: Colors.amber,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.lock,
-                  size: 18,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          if (isPremium)
-            Positioned(
-              top: 10,
-              right: 10,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.amber,
-                  borderRadius: BorderRadius.circular(10),
+                  color: widget.color,
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.color.withOpacity(_isPressed ? 0.3 : 0.5),
+                      blurRadius: _isPressed ? 5 : 10,
+                      offset: Offset(0, _isPressed ? 2 : 5),
+                    ),
+                  ],
                 ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.star, size: 14, color: Colors.white),
-                    SizedBox(width: 2),
+                    // Bouncing icon
+                    Transform.rotate(
+                      angle: math.sin((widget.floatController.value * 2 + phaseOffset) * math.pi) * 0.1,
+                      child: Icon(
+                        widget.icon,
+                        size: 50,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     Text(
-                      'PRO',
-                      style: TextStyle(
-                        fontSize: 10,
+                      widget.title,
+                      style: const TextStyle(
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      widget.subtitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.white.withOpacity(0.9),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-        ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _AnimatedPremiumCard extends StatefulWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final bool isPremium;
+  final int delay;
+  final AnimationController floatController;
+  final AnimationController pulseController;
+  final VoidCallback onTap;
+
+  const _AnimatedPremiumCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.isPremium,
+    required this.delay,
+    required this.floatController,
+    required this.pulseController,
+    required this.onTap,
+  });
+
+  @override
+  State<_AnimatedPremiumCard> createState() => _AnimatedPremiumCardState();
+}
+
+class _AnimatedPremiumCardState extends State<_AnimatedPremiumCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _scaleController;
+  bool _isPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scaleController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+      lowerBound: 0.95,
+      upperBound: 1.0,
+      value: 1.0,
+    );
+  }
+
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final phaseOffset = widget.delay * 0.25;
+
+    return GestureDetector(
+      onTapDown: (_) {
+        setState(() => _isPressed = true);
+        _scaleController.reverse();
+      },
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        _scaleController.forward();
+        widget.onTap();
+      },
+      onTapCancel: () {
+        setState(() => _isPressed = false);
+        _scaleController.forward();
+      },
+      child: AnimatedBuilder(
+        animation: Listenable.merge([widget.floatController, widget.pulseController, _scaleController]),
+        builder: (context, child) {
+          final floatValue = math.sin((widget.floatController.value + phaseOffset) * math.pi);
+          final shakeValue = widget.isPremium ? 0.0 : math.sin(widget.pulseController.value * math.pi * 4) * 0.02;
+
+          return Transform.translate(
+            offset: Offset(0, floatValue * 3),
+            child: Transform.scale(
+              scale: _scaleController.value,
+              child: Transform.rotate(
+                angle: shakeValue,
+                child: Stack(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: widget.isPremium ? widget.color : widget.color.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(25),
+                        boxShadow: [
+                          BoxShadow(
+                            color: widget.color.withOpacity(widget.isPremium ? 0.5 : 0.2),
+                            blurRadius: _isPressed ? 5 : 10,
+                            offset: Offset(0, _isPressed ? 2 : 5),
+                          ),
+                          if (widget.isPremium)
+                            BoxShadow(
+                              color: widget.color.withOpacity(0.3),
+                              blurRadius: 15 + (widget.pulseController.value * 5),
+                              spreadRadius: widget.pulseController.value * 2,
+                            ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Transform.rotate(
+                            angle: math.sin((widget.floatController.value * 2 + phaseOffset) * math.pi) * 0.15,
+                            child: Icon(
+                              widget.icon,
+                              size: 50,
+                              color: Colors.white.withOpacity(widget.isPremium ? 1 : 0.7),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            widget.title,
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white.withOpacity(widget.isPremium ? 1 : 0.7),
+                            ),
+                          ),
+                          Text(
+                            widget.subtitle,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.white.withOpacity(widget.isPremium ? 0.9 : 0.6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (!widget.isPremium)
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: Transform.scale(
+                          scale: 1.0 + (widget.pulseController.value * 0.2),
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.amber,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.amber.withOpacity(0.5),
+                                  blurRadius: 5 + (widget.pulseController.value * 5),
+                                  spreadRadius: widget.pulseController.value * 2,
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.lock,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (widget.isPremium)
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: Transform.rotate(
+                          angle: math.sin(widget.floatController.value * math.pi * 2) * 0.1,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.amber,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Transform.rotate(
+                                  angle: widget.floatController.value * math.pi * 2,
+                                  child: const Icon(Icons.star, size: 14, color: Colors.white),
+                                ),
+                                const SizedBox(width: 2),
+                                const Text(
+                                  'PRO',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
