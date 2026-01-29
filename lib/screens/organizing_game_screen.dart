@@ -99,14 +99,19 @@ class _OrganizingGameScreenState extends State<OrganizingGameScreen> {
     setState(() {});
   }
 
-  void _onItemDropped(String emoji, String categoryName) async {
+  void _onItemDropped(String emoji, String categoryName) {
     final itemIndex = _items.indexWhere((i) => i.emoji == emoji && !i.isPlaced);
     if (itemIndex == -1) return;
 
     final item = _items[itemIndex];
 
     if (item.correctCategory == categoryName) {
-      await _audioPlayer.play(AssetSource('sounds/correct.mp3'));
+      // Correct placement
+      try {
+        _audioPlayer.play(AssetSource('sounds/correct.mp3'));
+      } catch (e) {
+        // Sound not available
+      }
       setState(() {
         _items[itemIndex].isPlaced = true;
         _correctPlacements++;
@@ -116,7 +121,12 @@ class _OrganizingGameScreenState extends State<OrganizingGameScreen> {
         _completeLevel();
       }
     } else {
-      await _audioPlayer.play(AssetSource('sounds/incorrect.mp3'));
+      // Wrong placement - shake or give feedback
+      try {
+        _audioPlayer.play(AssetSource('sounds/incorrect.mp3'));
+      } catch (e) {
+        // Sound not available
+      }
     }
   }
 
@@ -393,82 +403,117 @@ class _OrganizingGameScreenState extends State<OrganizingGameScreen> {
 
                   const SizedBox(height: 15),
 
-                  // Drop zones (categories)
+                  // Drop zones (categories) - BASKETS
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: challenge.categories.map((category) {
                           final placedItems = _items
                               .where((i) => i.isPlaced && i.correctCategory == category.name)
                               .toList();
 
                           return Expanded(
-                            child: DragTarget<String>(
-                              onWillAcceptWithDetails: (_) => true,
-                              onAcceptWithDetails: (details) {
-                                _onItemDropped(details.data, category.name);
-                              },
-                              builder: (context, candidateData, rejectedData) {
-                                final isHovering = candidateData.isNotEmpty;
+                            child: Padding(
+                              padding: const EdgeInsets.all(5),
+                              child: DragTarget<String>(
+                                onWillAccept: (data) {
+                                  return data != null;
+                                },
+                                onAccept: (data) {
+                                  _onItemDropped(data, category.name);
+                                },
+                                builder: (context, candidateData, rejectedData) {
+                                  final isHovering = candidateData.isNotEmpty;
 
-                                return Container(
-                                  margin: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: isHovering
-                                        ? category.color.withOpacity(0.3)
-                                        : category.color.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
+                                  return AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    decoration: BoxDecoration(
                                       color: isHovering
-                                          ? category.color
-                                          : category.color.withOpacity(0.5),
-                                      width: isHovering ? 4 : 3,
+                                          ? category.color.withOpacity(0.5)
+                                          : category.color.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: category.color,
+                                        width: isHovering ? 5 : 3,
+                                      ),
+                                      boxShadow: isHovering
+                                          ? [
+                                              BoxShadow(
+                                                color: category.color.withOpacity(0.5),
+                                                blurRadius: 15,
+                                                spreadRadius: 2,
+                                              )
+                                            ]
+                                          : [],
                                     ),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        category.icon,
-                                        style: const TextStyle(fontSize: 40),
-                                      ),
-                                      Text(
-                                        category.name,
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: category.color,
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          category.icon,
+                                          style: const TextStyle(fontSize: 50),
                                         ),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Expanded(
-                                        child: SingleChildScrollView(
-                                          child: Wrap(
-                                            spacing: 5,
-                                            runSpacing: 5,
-                                            alignment: WrapAlignment.center,
-                                            children: placedItems
-                                                .map((item) => Text(
-                                                      item.emoji,
-                                                      style: const TextStyle(fontSize: 35),
-                                                    ))
-                                                .toList(),
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          category.name,
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: category.color,
                                           ),
                                         ),
-                                      ),
-                                      Text(
-                                        '${placedItems.length}/${category.items.length}',
-                                        style: TextStyle(
-                                          color: category.color,
-                                          fontWeight: FontWeight.bold,
+                                        if (isHovering)
+                                          Container(
+                                            margin: const EdgeInsets.only(top: 8),
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.circular(15),
+                                            ),
+                                            child: const Text(
+                                              '⬇️ DROP HERE ⬇️',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        const SizedBox(height: 10),
+                                        Wrap(
+                                          spacing: 5,
+                                          runSpacing: 5,
+                                          alignment: WrapAlignment.center,
+                                          children: placedItems
+                                              .map((item) => Text(
+                                                    item.emoji,
+                                                    style: const TextStyle(fontSize: 30),
+                                                  ))
+                                              .toList(),
                                         ),
-                                      ),
-                                      const SizedBox(height: 10),
-                                    ],
-                                  ),
-                                );
-                              },
+                                        const Spacer(),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                                          margin: const EdgeInsets.only(bottom: 10),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.8),
+                                            borderRadius: BorderRadius.circular(15),
+                                          ),
+                                          child: Text(
+                                            '${placedItems.length}/${category.items.length}',
+                                            style: TextStyle(
+                                              color: category.color,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
                           );
                         }).toList(),

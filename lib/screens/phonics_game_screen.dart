@@ -131,13 +131,13 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
       }
     });
 
-    // Flip animation for new questions
+    // Flip animation for new questions (fast)
     _transitionController = AnimationController(
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 300),
       vsync: this,
     );
     _transitionAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _transitionController, curve: Curves.easeInOut),
+      CurvedAnimation(parent: _transitionController, curve: Curves.easeOut),
     );
 
     _initTts();
@@ -233,34 +233,15 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
         _score += 10;
       });
 
-      Future.delayed(const Duration(milliseconds: 1500), () async {
+      Future.delayed(const Duration(milliseconds: 1500), () {
         if (mounted) {
           if (_currentIndex < _phonics.length - 1) {
-            // Start flip animation and show indicator
             setState(() {
-              _isTransitioning = true;
+              _currentIndex++;
+              _setupQuestion();
             });
-            _transitionController.forward(from: 0);
-
-            // Voice announcement
-            _tts.speak('Next letter!');
-
-            // Wait for flip animation to complete
-            await Future.delayed(const Duration(milliseconds: 600));
-
-            if (mounted) {
-              // Update to next question
-              setState(() {
-                _currentIndex++;
-                _setupQuestion();
-                _isTransitioning = false;
-              });
-              _transitionController.reset();
-
-              // Play the new letter sound
-              await Future.delayed(const Duration(milliseconds: 200));
-              _playSound();
-            }
+            // Play the new letter sound
+            _playSound();
           } else {
             _showCompletionDialog();
           }
@@ -432,71 +413,13 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
                     ),
                   ),
 
-                  // Content with flip animation
                   Expanded(
-                    child: AnimatedBuilder(
-                      animation: _transitionAnimation,
-                      builder: (context, child) {
-                        // Flip animation when transitioning
-                        double rotationValue = _isTransitioning
-                            ? _transitionAnimation.value * pi
-                            : 0;
-                        return Transform(
-                          alignment: Alignment.center,
-                          transform: Matrix4.identity()
-                            ..setEntry(3, 2, 0.001) // perspective
-                            ..rotateY(rotationValue),
-                          child: child,
-                        );
-                      },
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            // "Next Letter" indicator when transitioning
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              height: _isTransitioning ? 80 : 0,
-                              child: _isTransitioning
-                                  ? Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                      margin: const EdgeInsets.only(bottom: 20, top: 10),
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [Colors.orange.shade400, Colors.pink.shade400],
-                                        ),
-                                        borderRadius: BorderRadius.circular(30),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.orange.shade200,
-                                            blurRadius: 15,
-                                            offset: const Offset(0, 5),
-                                          ),
-                                        ],
-                                      ),
-                                      child: const Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text('🌟', style: TextStyle(fontSize: 28)),
-                                          SizedBox(width: 10),
-                                          Text(
-                                            'Next Letter!',
-                                            style: TextStyle(
-                                              fontSize: 24,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                          SizedBox(width: 10),
-                                          Text('🌟', style: TextStyle(fontSize: 28)),
-                                        ],
-                                      ),
-                                    )
-                                  : const SizedBox(),
-                            ),
-
-                            // Letter display
-                            AnimatedBuilder(
-                              animation: _bounceAnimation,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          // Letter display
+                          AnimatedBuilder(
+                            animation: _bounceAnimation,
                             builder: (context, child) {
                               return Transform.translate(
                                 offset: Offset(0, _bounceAnimation.value),
@@ -718,7 +641,6 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
                       ),
                     ),
                   ),
-                ),
                 ],
               ),
             ),

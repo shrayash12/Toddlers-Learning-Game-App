@@ -170,7 +170,7 @@ class _MathGameScreenState extends State<MathGameScreen>
       });
       _animationController.forward().then((_) => _animationController.reverse());
 
-      Future.delayed(const Duration(seconds: 2), () {
+      Future.delayed(const Duration(milliseconds: 1500), () {
         if (mounted) {
           if (_questionsAnswered < _totalQuestions) {
             setState(() {
