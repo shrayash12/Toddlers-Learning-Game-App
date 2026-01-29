@@ -18,8 +18,11 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
   late ConfettiController _confettiController;
   late AnimationController _animationController;
   late AnimationController _shakeController;
+  late AnimationController _transitionController;
   late Animation<double> _bounceAnimation;
   late Animation<double> _shakeAnimation;
+  late Animation<double> _transitionAnimation;
+  bool _isTransitioning = false;
 
   final List<Map<String, dynamic>> _phonics = [
     {
@@ -127,6 +130,16 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
         _shakeController.reset();
       }
     });
+
+    // Flip animation for new questions
+    _transitionController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _transitionAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _transitionController, curve: Curves.easeInOut),
+    );
+
     _initTts();
     _setupQuestion();
   }
@@ -220,13 +233,34 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
         _score += 10;
       });
 
-      Future.delayed(const Duration(seconds: 2), () {
+      Future.delayed(const Duration(milliseconds: 1500), () async {
         if (mounted) {
           if (_currentIndex < _phonics.length - 1) {
+            // Start flip animation and show indicator
             setState(() {
-              _currentIndex++;
-              _setupQuestion();
+              _isTransitioning = true;
             });
+            _transitionController.forward(from: 0);
+
+            // Voice announcement
+            _tts.speak('Next letter!');
+
+            // Wait for flip animation to complete
+            await Future.delayed(const Duration(milliseconds: 600));
+
+            if (mounted) {
+              // Update to next question
+              setState(() {
+                _currentIndex++;
+                _setupQuestion();
+                _isTransitioning = false;
+              });
+              _transitionController.reset();
+
+              // Play the new letter sound
+              await Future.delayed(const Duration(milliseconds: 200));
+              _playSound();
+            }
           } else {
             _showCompletionDialog();
           }
@@ -335,6 +369,7 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
     _confettiController.dispose();
     _animationController.dispose();
     _shakeController.dispose();
+    _transitionController.dispose();
     _audioPlayer.dispose();
     _tts.stop();
     super.dispose();
@@ -397,13 +432,71 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
                     ),
                   ),
 
+                  // Content with flip animation
                   Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          // Letter display
-                          AnimatedBuilder(
-                            animation: _bounceAnimation,
+                    child: AnimatedBuilder(
+                      animation: _transitionAnimation,
+                      builder: (context, child) {
+                        // Flip animation when transitioning
+                        double rotationValue = _isTransitioning
+                            ? _transitionAnimation.value * pi
+                            : 0;
+                        return Transform(
+                          alignment: Alignment.center,
+                          transform: Matrix4.identity()
+                            ..setEntry(3, 2, 0.001) // perspective
+                            ..rotateY(rotationValue),
+                          child: child,
+                        );
+                      },
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            // "Next Letter" indicator when transitioning
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              height: _isTransitioning ? 80 : 0,
+                              child: _isTransitioning
+                                  ? Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                      margin: const EdgeInsets.only(bottom: 20, top: 10),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [Colors.orange.shade400, Colors.pink.shade400],
+                                        ),
+                                        borderRadius: BorderRadius.circular(30),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.orange.shade200,
+                                            blurRadius: 15,
+                                            offset: const Offset(0, 5),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text('🌟', style: TextStyle(fontSize: 28)),
+                                          SizedBox(width: 10),
+                                          Text(
+                                            'Next Letter!',
+                                            style: TextStyle(
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          SizedBox(width: 10),
+                                          Text('🌟', style: TextStyle(fontSize: 28)),
+                                        ],
+                                      ),
+                                    )
+                                  : const SizedBox(),
+                            ),
+
+                            // Letter display
+                            AnimatedBuilder(
+                              animation: _bounceAnimation,
                             builder: (context, child) {
                               return Transform.translate(
                                 offset: Offset(0, _bounceAnimation.value),
@@ -625,6 +718,7 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
                       ),
                     ),
                   ),
+                ),
                 ],
               ),
             ),

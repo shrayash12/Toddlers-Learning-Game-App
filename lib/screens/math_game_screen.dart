@@ -18,9 +18,12 @@ class _MathGameScreenState extends State<MathGameScreen>
   late ConfettiController _confettiController;
   late AnimationController _animationController;
   late AnimationController _shakeController;
+  late AnimationController _transitionController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _shakeAnimation;
+  late Animation<double> _transitionAnimation;
   final Random _random = Random();
+  bool _isTransitioning = false;
 
   int _num1 = 0;
   int _num2 = 0;
@@ -61,6 +64,16 @@ class _MathGameScreenState extends State<MathGameScreen>
         _shakeController.reset();
       }
     });
+
+    // Transition animation (rotate and scale)
+    _transitionController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    _transitionAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _transitionController, curve: Curves.easeInOut),
+    );
+
     _initTts();
     _generateQuestion();
   }
@@ -272,6 +285,7 @@ class _MathGameScreenState extends State<MathGameScreen>
     _confettiController.dispose();
     _animationController.dispose();
     _shakeController.dispose();
+    _transitionController.dispose();
     _audioPlayer.dispose();
     _tts.stop();
     super.dispose();
