@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:confetti/confetti.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'dart:math';
 
 class MathGameScreen extends StatefulWidget {
@@ -11,11 +12,14 @@ class MathGameScreen extends StatefulWidget {
 }
 
 class _MathGameScreenState extends State<MathGameScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final FlutterTts _tts = FlutterTts();
+  final AudioPlayer _audioPlayer = AudioPlayer();
   late ConfettiController _confettiController;
   late AnimationController _animationController;
+  late AnimationController _shakeController;
   late Animation<double> _scaleAnimation;
+  late Animation<double> _shakeAnimation;
   final Random _random = Random();
 
   int _num1 = 0;
@@ -28,6 +32,9 @@ class _MathGameScreenState extends State<MathGameScreen>
   final int _totalQuestions = 10;
   bool _answered = false;
   int? _selectedAnswer;
+  bool _isWrong = false;
+  int _attempts = 0;
+  bool _isProcessing = false;
 
   final List<String> _emojis = ['🍎', '🌟', '🎈', '🍪', '🦋', '🌸', '🍬', '🎯'];
 
@@ -42,18 +49,61 @@ class _MathGameScreenState extends State<MathGameScreen>
     _scaleAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
+    _shakeController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _shakeAnimation = Tween<double>(begin: 0, end: 10).chain(
+      CurveTween(curve: Curves.elasticIn),
+    ).animate(_shakeController);
+    _shakeController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _shakeController.reset();
+      }
+    });
     _initTts();
     _generateQuestion();
   }
 
+  bool _isSpeaking = false;
+
   void _initTts() async {
     await _tts.setLanguage('en-US');
     await _tts.setSpeechRate(0.4);
+    await _tts.awaitSpeakCompletion(true);
+
+    _tts.setStartHandler(() {
+      _isSpeaking = true;
+    });
+    _tts.setCompletionHandler(() {
+      _isSpeaking = false;
+    });
+    _tts.setCancelHandler(() {
+      _isSpeaking = false;
+    });
+    _tts.setErrorHandler((msg) {
+      _isSpeaking = false;
+    });
+  }
+
+  Future<void> _speak(String text) async {
+    try {
+      await _tts.stop();
+      await Future.delayed(const Duration(milliseconds: 100));
+      await _tts.speak(text);
+      // Give enough time for short phrases to complete
+      await Future.delayed(const Duration(milliseconds: 1000));
+    } catch (e) {
+      // TTS error - ignore
+    }
   }
 
   void _generateQuestion() {
     _answered = false;
     _selectedAnswer = null;
+    _isWrong = false;
+    _attempts = 0;
+    _isProcessing = false;
 
     // Alternate between addition and subtraction
     _isAddition = _random.nextBool();
@@ -81,45 +131,75 @@ class _MathGameScreenState extends State<MathGameScreen>
     _speakQuestion();
   }
 
-  void _speakQuestion() {
+  void _speakQuestion() async {
     String question = _isAddition
         ? 'What is $_num1 plus $_num2?'
         : 'What is $_num1 minus $_num2?';
-    _tts.speak(question);
+    await _speak(question);
   }
 
-  void _checkAnswer(int answer) {
-    if (_answered) return;
-
-    setState(() {
-      _answered = true;
-      _selectedAnswer = answer;
-    });
+  void _checkAnswer(int answer) async {
+    if (_answered || _isProcessing) return;
 
     if (answer == _correctAnswer) {
-      _confettiController.play();
-      _tts.speak('Correct! Great job!');
+      // Correct answer
       setState(() {
-        _score += 10;
+        _answered = true;
+        _selectedAnswer = answer;
+        _isWrong = false;
+      });
+      _confettiController.play();
+      await _speak('Correct! Great job!');
+      setState(() {
+        // Give bonus points for first attempt
+        _score += _attempts == 0 ? 10 : 5;
+        _questionsAnswered++;
       });
       _animationController.forward().then((_) => _animationController.reverse());
+
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          if (_questionsAnswered < _totalQuestions) {
+            setState(() {
+              _generateQuestion();
+            });
+          } else {
+            _showCompletionDialog();
+          }
+        }
+      });
     } else {
-      _tts.speak('Oops! The answer is $_correctAnswer. Try the next one!');
-    }
+      // Wrong answer - give another chance
+      setState(() {
+        _isWrong = true;
+        _selectedAnswer = answer;
+        _attempts++;
+        _isProcessing = true;
+      });
 
-    setState(() {
-      _questionsAnswered++;
-    });
+      // Shake animation
+      _shakeController.forward();
 
-    Future.delayed(const Duration(seconds: 2), () {
-      if (_questionsAnswered < _totalQuestions) {
-        setState(() {
-          _generateQuestion();
-        });
-      } else {
-        _showCompletionDialog();
+      // Play wrong sound (don't await - let it play in background)
+      try {
+        _audioPlayer.play(AssetSource('sounds/incorrect.mp3'));
+      } catch (e) {
+        // Sound file might not exist
       }
-    });
+
+      // Speak feedback
+      await _speak('Oops! Try again!');
+
+      // Reset after showing feedback to allow retry
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) {
+        setState(() {
+          _isWrong = false;
+          _selectedAnswer = null;
+          _isProcessing = false;
+        });
+      }
+    }
   }
 
   void _showCompletionDialog() {
@@ -191,6 +271,8 @@ class _MathGameScreenState extends State<MathGameScreen>
   void dispose() {
     _confettiController.dispose();
     _animationController.dispose();
+    _shakeController.dispose();
+    _audioPlayer.dispose();
     _tts.stop();
     super.dispose();
   }
@@ -379,53 +461,89 @@ class _MathGameScreenState extends State<MathGameScreen>
 
                         const SizedBox(height: 40),
 
-                        // Answer options
-                        Wrap(
-                          spacing: 16,
-                          runSpacing: 16,
-                          children: _options.map((option) {
-                            bool isSelected = _selectedAnswer == option;
-                            bool isCorrect = option == _correctAnswer;
-                            Color bgColor = Colors.blue.shade400;
-
-                            if (_answered) {
-                              if (isCorrect) {
-                                bgColor = Colors.green;
-                              } else if (isSelected) {
-                                bgColor = Colors.red;
-                              }
-                            }
-
-                            return GestureDetector(
-                              onTap: () => _checkAnswer(option),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                width: 80,
-                                height: 80,
-                                decoration: BoxDecoration(
-                                  color: bgColor,
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: bgColor.withOpacity(0.5),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    '$option',
-                                    style: const TextStyle(
-                                      fontSize: 36,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
+                        // Wrong answer feedback message
+                        if (_isWrong)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            margin: const EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade100,
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(color: Colors.red, width: 2),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('❌', style: TextStyle(fontSize: 24)),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Oops! Try Again!',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.red.shade700,
                                   ),
                                 ),
+                              ],
+                            ),
+                          ),
+
+                        // Answer options with shake animation
+                        AnimatedBuilder(
+                          animation: _shakeAnimation,
+                          builder: (context, child) {
+                            return Transform.translate(
+                              offset: Offset(
+                                _isWrong ? sin(_shakeAnimation.value * pi * 4) * 10 : 0,
+                                0,
+                              ),
+                              child: Wrap(
+                                spacing: 16,
+                                runSpacing: 16,
+                                children: _options.map((option) {
+                                  bool isSelected = _selectedAnswer == option;
+                                  bool isCorrect = option == _correctAnswer;
+                                  Color bgColor = Colors.blue.shade400;
+
+                                  if (_answered && isCorrect) {
+                                    bgColor = Colors.green;
+                                  } else if (_isWrong && isSelected) {
+                                    bgColor = Colors.red;
+                                  }
+
+                                  return GestureDetector(
+                                    onTap: () => _checkAnswer(option),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      width: 80,
+                                      height: 80,
+                                      decoration: BoxDecoration(
+                                        color: bgColor,
+                                        borderRadius: BorderRadius.circular(20),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: bgColor.withOpacity(0.5),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '$option',
+                                          style: const TextStyle(
+                                            fontSize: 36,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
                               ),
                             );
-                          }).toList(),
+                          },
                         ),
 
                         const SizedBox(height: 30),

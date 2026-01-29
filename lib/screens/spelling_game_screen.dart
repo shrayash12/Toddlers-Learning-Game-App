@@ -46,6 +46,21 @@ class _SpellingGameScreenState extends State<SpellingGameScreen>
   void initState() {
     super.initState();
     _confettiController = ConfettiController(duration: const Duration(seconds: 2));
+
+    // Shake animation for wrong answer
+    _shakeController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _shakeAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _shakeController, curve: Curves.elasticIn),
+    );
+    _shakeController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _shakeController.reset();
+      }
+    });
+
     _initTts();
   }
 
@@ -147,6 +162,13 @@ class _SpellingGameScreenState extends State<SpellingGameScreen>
     if (_selectedLetters.length == word.length) {
       final spelled = _selectedLetters.join('');
       if (spelled == word) {
+        // Correct answer
+        try {
+          await _audioPlayer.play(AssetSource('sounds/correct.mp3'));
+        } catch (e) {
+          // Sound file might not exist, continue anyway
+        }
+
         setState(() {
           _isCorrect = true;
           _score += 10;
@@ -155,7 +177,9 @@ class _SpellingGameScreenState extends State<SpellingGameScreen>
         _confettiController.play();
 
         await Future.delayed(const Duration(milliseconds: 500));
-        await _speak('Wonderful! You spelled $word correctly! Great job!');
+
+        await _tts.stop();
+        await _tts.speak('Wonderful! You spelled $word correctly! Great job!');
 
         await Future.delayed(const Duration(seconds: 3));
 
@@ -170,12 +194,31 @@ class _SpellingGameScreenState extends State<SpellingGameScreen>
           }
         }
       } else {
-        await _speak('Oops! That is not right. Try again!');
+        // Wrong answer - show visual feedback immediately
+        setState(() {
+          _isWrong = true;
+        });
 
-        await Future.delayed(const Duration(seconds: 1));
+        // Play beep sound
+        try {
+          await _audioPlayer.play(AssetSource('sounds/incorrect.mp3'));
+        } catch (e) {
+          // Sound file might not exist, continue anyway
+        }
+
+        // Start shake animation
+        _shakeController.forward();
+
+        // Speak error message
+        await _tts.stop();
+        await _tts.speak('Oops! Try again!');
+
+        // Wait to show the wrong state
+        await Future.delayed(const Duration(milliseconds: 1500));
 
         if (mounted) {
           setState(() {
+            _isWrong = false;
             _availableLetters.addAll(_selectedLetters);
             _selectedLetters = [];
             _availableLetters.shuffle();
@@ -253,6 +296,8 @@ class _SpellingGameScreenState extends State<SpellingGameScreen>
   @override
   void dispose() {
     _confettiController.dispose();
+    _shakeController.dispose();
+    _audioPlayer.dispose();
     _tts.stop();
     super.dispose();
   }
@@ -408,63 +453,110 @@ class _SpellingGameScreenState extends State<SpellingGameScreen>
 
                           const SizedBox(height: 25),
 
-                          // Spelling slots
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(
-                              (currentWord['word'] as String).length,
-                              (index) => GestureDetector(
-                                onTap: index < _selectedLetters.length && !_isCorrect
-                                  ? () => _removeLetter(index)
-                                  : null,
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  width: 55,
-                                  height: 65,
-                                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                                  decoration: BoxDecoration(
-                                    color: _isCorrect
-                                        ? Colors.green.shade100
-                                        : (index < _selectedLetters.length
-                                            ? Colors.white
-                                            : Colors.white.withOpacity(0.5)),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: _isCorrect
-                                          ? Colors.green
-                                          : Colors.purple.shade300,
-                                      width: 3,
-                                    ),
-                                    boxShadow: index < _selectedLetters.length
-                                        ? [
-                                            BoxShadow(
-                                              color: (_isCorrect
-                                                  ? Colors.green
-                                                  : Colors.purple).withOpacity(0.3),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 4),
-                                            ),
-                                          ]
+                          // Spelling slots with shake animation
+                          AnimatedBuilder(
+                            animation: _shakeAnimation,
+                            builder: (context, _) {
+                              final shakeOffset = sin(_shakeAnimation.value * pi * 4) * 10;
+                              return Transform.translate(
+                                offset: Offset(_isWrong ? shakeOffset : 0, 0),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: List.generate(
+                                    (currentWord['word'] as String).length,
+                                    (index) => GestureDetector(
+                                      onTap: index < _selectedLetters.length && !_isCorrect && !_isWrong
+                                        ? () => _removeLetter(index)
                                         : null,
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      index < _selectedLetters.length
-                                        ? _selectedLetters[index]
-                                        : '',
-                                      style: TextStyle(
-                                        fontSize: 32,
-                                        fontWeight: FontWeight.bold,
-                                        color: _isCorrect
-                                            ? Colors.green.shade700
-                                            : Colors.purple.shade700,
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 200),
+                                        width: 55,
+                                        height: 65,
+                                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                                        decoration: BoxDecoration(
+                                          color: _isWrong
+                                              ? Colors.red.shade100
+                                              : (_isCorrect
+                                                  ? Colors.green.shade100
+                                                  : (index < _selectedLetters.length
+                                                      ? Colors.white
+                                                      : Colors.white.withOpacity(0.5))),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: _isWrong
+                                                ? Colors.red
+                                                : (_isCorrect
+                                                    ? Colors.green
+                                                    : Colors.purple.shade300),
+                                            width: 3,
+                                          ),
+                                          boxShadow: index < _selectedLetters.length
+                                              ? [
+                                                  BoxShadow(
+                                                    color: (_isWrong
+                                                        ? Colors.red
+                                                        : (_isCorrect
+                                                            ? Colors.green
+                                                            : Colors.purple)).withOpacity(0.3),
+                                                    blurRadius: 8,
+                                                    offset: const Offset(0, 4),
+                                                  ),
+                                                ]
+                                              : null,
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            index < _selectedLetters.length
+                                              ? _selectedLetters[index]
+                                              : '',
+                                            style: TextStyle(
+                                              fontSize: 32,
+                                              fontWeight: FontWeight.bold,
+                                              color: _isWrong
+                                                  ? Colors.red.shade700
+                                                  : (_isCorrect
+                                                      ? Colors.green.shade700
+                                                      : Colors.purple.shade700),
+                                            ),
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
+                              );
+                            },
+                          ),
+
+                          // Wrong answer indicator
+                          if (_isWrong)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 15),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.shade50,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: Colors.red, width: 2),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text('❌ ', style: TextStyle(fontSize: 24)),
+                                    Text(
+                                      'Oops! Try Again!',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.red.shade700,
+                                      ),
+                                    ),
+                                    const Text(' 🔄', style: TextStyle(fontSize: 24)),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
 
                           if (_isCorrect)
                             Padding(
