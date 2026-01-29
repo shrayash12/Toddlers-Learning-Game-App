@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:confetti/confetti.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'dart:math';
 
 class PhonicsGameScreen extends StatefulWidget {
@@ -11,11 +12,14 @@ class PhonicsGameScreen extends StatefulWidget {
 }
 
 class _PhonicsGameScreenState extends State<PhonicsGameScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final FlutterTts _tts = FlutterTts();
+  final AudioPlayer _audioPlayer = AudioPlayer();
   late ConfettiController _confettiController;
   late AnimationController _animationController;
+  late AnimationController _shakeController;
   late Animation<double> _bounceAnimation;
+  late Animation<double> _shakeAnimation;
 
   final List<Map<String, dynamic>> _phonics = [
     {
@@ -96,6 +100,9 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
   List<Map<String, String>> _options = [];
   bool _answered = false;
   String? _selectedWord;
+  bool _isWrong = false;
+  bool _isProcessing = false;
+  bool _isSpeaking = false;
 
   @override
   void initState() {
@@ -108,6 +115,18 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
     _bounceAnimation = Tween<double>(begin: 0, end: -20).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
     );
+    _shakeController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _shakeAnimation = Tween<double>(begin: 0, end: 10).chain(
+      CurveTween(curve: Curves.elasticIn),
+    ).animate(_shakeController);
+    _shakeController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _shakeController.reset();
+      }
+    });
     _initTts();
     _setupQuestion();
   }
@@ -116,6 +135,28 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
     await _tts.setLanguage('en-US');
     await _tts.setSpeechRate(0.35);
     await _tts.setPitch(1.1);
+    await _tts.awaitSpeakCompletion(true);
+
+    _tts.setStartHandler(() {
+      _isSpeaking = true;
+    });
+    _tts.setCompletionHandler(() {
+      _isSpeaking = false;
+    });
+    _tts.setCancelHandler(() {
+      _isSpeaking = false;
+    });
+  }
+
+  Future<void> _speak(String text) async {
+    try {
+      await _tts.stop();
+      await Future.delayed(const Duration(milliseconds: 100));
+      await _tts.speak(text);
+      await Future.delayed(const Duration(milliseconds: 1000));
+    } catch (e) {
+      // TTS error
+    }
   }
 
   void _setupQuestion() {
@@ -145,6 +186,8 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
     _options.shuffle();
     _answered = false;
     _selectedWord = null;
+    _isWrong = false;
+    _isProcessing = false;
   }
 
   void _playSound() {
@@ -157,34 +200,65 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
     _tts.speak(word);
   }
 
-  void _checkAnswer(String word) {
-    if (_answered) return;
-
-    setState(() {
-      _answered = true;
-      _selectedWord = word;
-    });
+  void _checkAnswer(String word) async {
+    if (_answered || _isProcessing) return;
 
     if (word == _correctWord) {
+      // Correct answer
+      setState(() {
+        _answered = true;
+        _selectedWord = word;
+        _isWrong = false;
+      });
       _confettiController.play();
-      _tts.speak('Correct! $word starts with ${_phonics[_currentIndex]['letter']}');
+      await _speak('Correct! $word starts with ${_phonics[_currentIndex]['letter']}');
       setState(() {
         _score += 10;
       });
-    } else {
-      _tts.speak('Try again! $_correctWord starts with ${_phonics[_currentIndex]['letter']}');
-    }
 
-    Future.delayed(const Duration(seconds: 3), () {
-      if (_currentIndex < _phonics.length - 1) {
-        setState(() {
-          _currentIndex++;
-          _setupQuestion();
-        });
-      } else {
-        _showCompletionDialog();
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          if (_currentIndex < _phonics.length - 1) {
+            setState(() {
+              _currentIndex++;
+              _setupQuestion();
+            });
+          } else {
+            _showCompletionDialog();
+          }
+        }
+      });
+    } else {
+      // Wrong answer - give another chance
+      setState(() {
+        _isWrong = true;
+        _selectedWord = word;
+        _isProcessing = true;
+      });
+
+      // Shake animation
+      _shakeController.forward();
+
+      // Play wrong sound
+      try {
+        _audioPlayer.play(AssetSource('sounds/incorrect.mp3'));
+      } catch (e) {
+        // Sound file might not exist
       }
-    });
+
+      // Speak feedback
+      await _speak('Oops! Try again!');
+
+      // Reset to allow retry
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) {
+        setState(() {
+          _isWrong = false;
+          _selectedWord = null;
+          _isProcessing = false;
+        });
+      }
+    }
   }
 
   void _showCompletionDialog() {
@@ -256,6 +330,8 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
   void dispose() {
     _confettiController.dispose();
     _animationController.dispose();
+    _shakeController.dispose();
+    _audioPlayer.dispose();
     _tts.stop();
     super.dispose();
   }
@@ -407,8 +483,43 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
 
                           const SizedBox(height: 20),
 
-                          // Options
-                          Wrap(
+                          // Wrong answer feedback
+                          if (_isWrong)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                              margin: const EdgeInsets.only(bottom: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade100,
+                                borderRadius: BorderRadius.circular(15),
+                                border: Border.all(color: Colors.red, width: 2),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text('❌', style: TextStyle(fontSize: 24)),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    'Oops! Try Again!',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.red.shade700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          // Options with shake animation
+                          AnimatedBuilder(
+                            animation: _shakeAnimation,
+                            builder: (context, child) {
+                              return Transform.translate(
+                                offset: Offset(
+                                  _isWrong ? sin(_shakeAnimation.value * pi * 4) * 10 : 0,
+                                  0,
+                                ),
+                                child: Wrap(
                             spacing: 12,
                             runSpacing: 12,
                             alignment: WrapAlignment.center,
@@ -417,12 +528,10 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
                               bool isCorrect = option['word'] == _correctWord;
                               Color bgColor = Colors.white;
 
-                              if (_answered) {
-                                if (isCorrect) {
-                                  bgColor = Colors.green.shade100;
-                                } else if (isSelected) {
-                                  bgColor = Colors.red.shade100;
-                                }
+                              if (_answered && isCorrect) {
+                                bgColor = Colors.green.shade100;
+                              } else if (_isWrong && isSelected) {
+                                bgColor = Colors.red.shade100;
                               }
 
                               return GestureDetector(
@@ -436,10 +545,12 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
                                     color: bgColor,
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
-                                      color: isSelected
-                                          ? (isCorrect ? Colors.green : Colors.red)
-                                          : Colors.teal.shade200,
-                                      width: isSelected ? 3 : 1,
+                                      color: (_answered && isCorrect)
+                                          ? Colors.green
+                                          : (_isWrong && isSelected)
+                                              ? Colors.red
+                                              : Colors.teal.shade200,
+                                      width: (isSelected && (_answered || _isWrong)) ? 3 : 1,
                                     ),
                                     boxShadow: [
                                       BoxShadow(
@@ -470,6 +581,9 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
                                 ),
                               );
                             }).toList(),
+                          ),
+                              );
+                            },
                           ),
 
                           const SizedBox(height: 30),
