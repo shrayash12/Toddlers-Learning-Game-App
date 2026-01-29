@@ -164,24 +164,28 @@ class _PhonicsGameScreenState extends State<PhonicsGameScreen>
     final words = current['words'] as List<String>;
     final emojis = current['emojis'] as List<String>;
 
-    // Pick correct answer
+    // Pick ONE correct answer from current letter
     int correctIndex = Random().nextInt(words.length);
     _correctWord = words[correctIndex];
 
-    // Create options
+    // Create options with only ONE correct answer
     _options = [];
-    for (int i = 0; i < words.length; i++) {
-      _options.add({'word': words[i], 'emoji': emojis[i]});
-    }
+    _options.add({'word': words[correctIndex], 'emoji': emojis[correctIndex]});
 
-    // Add one wrong option from another letter
-    int wrongIndex = (_currentIndex + 1) % _phonics.length;
-    final wrongPhonic = _phonics[wrongIndex];
-    int wrongWordIndex = Random().nextInt((wrongPhonic['words'] as List).length);
-    _options.add({
-      'word': (wrongPhonic['words'] as List<String>)[wrongWordIndex],
-      'emoji': (wrongPhonic['emojis'] as List<String>)[wrongWordIndex],
-    });
+    // Add 3 wrong options from other letters
+    List<int> usedIndices = [_currentIndex];
+    while (_options.length < 4) {
+      int wrongIndex = Random().nextInt(_phonics.length);
+      if (!usedIndices.contains(wrongIndex)) {
+        usedIndices.add(wrongIndex);
+        final wrongPhonic = _phonics[wrongIndex];
+        int wrongWordIndex = Random().nextInt((wrongPhonic['words'] as List).length);
+        _options.add({
+          'word': (wrongPhonic['words'] as List<String>)[wrongWordIndex],
+          'emoji': (wrongPhonic['emojis'] as List<String>)[wrongWordIndex],
+        });
+      }
+    }
 
     _options.shuffle();
     _answered = false;
