@@ -17,6 +17,8 @@ class _ConnectDotsGameScreenState extends State<ConnectDotsGameScreen> {
   List<int> _connectedDots = [];
   bool _levelComplete = false;
   int _completedLevels = 0;
+  bool _isDragging = false;
+  Offset? _currentDragPosition;
 
   final List<DotPuzzle> _puzzles = [
     // Star
@@ -118,34 +120,98 @@ class _ConnectDotsGameScreenState extends State<ConnectDotsGameScreen> {
     super.dispose();
   }
 
-  void _onDotTapped(int dotNumber) async {
+  void _onPanStart(DragStartDetails details, Size size) {
     if (_levelComplete) return;
 
+    final puzzle = _puzzles[_currentLevel];
     final expectedNext = _connectedDots.length + 1;
 
-    if (dotNumber == expectedNext) {
-      await _audioPlayer.play(AssetSource('sounds/pop.mp3'));
+    // Check if starting near the next expected dot (or dot 1 if starting fresh)
+    for (var dot in puzzle.dots) {
+      if (dot.number == expectedNext) {
+        final dotPos = Offset(dot.x * size.width, dot.y * size.height);
+        final distance = (details.localPosition - dotPos).distance;
 
-      setState(() {
-        _connectedDots.add(dotNumber);
-      });
+        if (distance < 40) {
+          setState(() {
+            _isDragging = true;
+            _currentDragPosition = details.localPosition;
+            _connectedDots.add(dot.number);
+          });
 
-      final puzzle = _puzzles[_currentLevel];
-      if (_connectedDots.length == puzzle.dots.length) {
-        _completeLevel();
+          try {
+            _audioPlayer.play(AssetSource('sounds/pop.mp3'));
+          } catch (e) {
+            // Sound file may not exist
+          }
+
+          // Check if this completes the puzzle
+          if (_connectedDots.length == puzzle.dots.length) {
+            _completeLevel();
+          }
+          break;
+        }
       }
-    } else {
-      await _audioPlayer.play(AssetSource('sounds/incorrect.mp3'));
     }
   }
 
+  void _onPanUpdate(DragUpdateDetails details, Size size) {
+    if (!_isDragging || _levelComplete) return;
+
+    setState(() {
+      _currentDragPosition = details.localPosition;
+    });
+
+    final puzzle = _puzzles[_currentLevel];
+    final expectedNext = _connectedDots.length + 1;
+
+    // Check if dragging over the next expected dot
+    for (var dot in puzzle.dots) {
+      if (dot.number == expectedNext) {
+        final dotPos = Offset(dot.x * size.width, dot.y * size.height);
+        final distance = (details.localPosition - dotPos).distance;
+
+        if (distance < 35) {
+          setState(() {
+            _connectedDots.add(dot.number);
+          });
+
+          try {
+            _audioPlayer.play(AssetSource('sounds/pop.mp3'));
+          } catch (e) {
+            // Sound file may not exist
+          }
+
+          // Check if this completes the puzzle
+          if (_connectedDots.length == puzzle.dots.length) {
+            _completeLevel();
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  void _onPanEnd(DragEndDetails details) {
+    setState(() {
+      _isDragging = false;
+      _currentDragPosition = null;
+    });
+  }
+
   void _completeLevel() async {
+    if (_levelComplete) return; // Prevent multiple calls
+
     setState(() {
       _levelComplete = true;
       _completedLevels++;
     });
 
-    await _audioPlayer.play(AssetSource('sounds/correct.mp3'));
+    try {
+      await _audioPlayer.play(AssetSource('sounds/correct.mp3'));
+    } catch (e) {
+      // Sound file may not exist
+    }
     _confettiController.play();
 
     await Future.delayed(const Duration(seconds: 2));
@@ -332,27 +398,31 @@ class _ConnectDotsGameScreenState extends State<ConnectDotsGameScreen> {
                               constraints.maxWidth,
                               constraints.maxHeight,
                             );
-                            return Stack(
-                              children: [
-                                // Lines painter
-                                CustomPaint(
-                                  size: size,
-                                  painter: DotLinePainter(
-                                    puzzle: puzzle,
-                                    connectedDots: _connectedDots,
-                                    levelComplete: _levelComplete,
+                            return GestureDetector(
+                              onPanStart: (d) => _onPanStart(d, size),
+                              onPanUpdate: (d) => _onPanUpdate(d, size),
+                              onPanEnd: _onPanEnd,
+                              child: Stack(
+                                children: [
+                                  // Lines painter
+                                  CustomPaint(
+                                    size: size,
+                                    painter: DotLinePainter(
+                                      puzzle: puzzle,
+                                      connectedDots: _connectedDots,
+                                      levelComplete: _levelComplete,
+                                      currentDragPosition: _currentDragPosition,
+                                      isDragging: _isDragging,
+                                    ),
                                   ),
-                                ),
-                                // Dots
-                                ...puzzle.dots.map((dot) {
-                                  final isConnected = _connectedDots.contains(dot.number);
-                                  final isNext = dot.number == _connectedDots.length + 1;
+                                  // Dots
+                                  ...puzzle.dots.map((dot) {
+                                    final isConnected = _connectedDots.contains(dot.number);
+                                    final isNext = dot.number == _connectedDots.length + 1;
 
-                                  return Positioned(
-                                    left: dot.x * size.width - 25,
-                                    top: dot.y * size.height - 25,
-                                    child: GestureDetector(
-                                      onTap: () => _onDotTapped(dot.number),
+                                    return Positioned(
+                                      left: dot.x * size.width - 25,
+                                      top: dot.y * size.height - 25,
                                       child: AnimatedContainer(
                                         duration: const Duration(milliseconds: 200),
                                         width: 50,
@@ -393,18 +463,18 @@ class _ConnectDotsGameScreenState extends State<ConnectDotsGameScreen> {
                                           ),
                                         ),
                                       ),
+                                    );
+                                  }),
+                                  // Show emoji when complete
+                                  if (_levelComplete)
+                                    Center(
+                                      child: Text(
+                                        puzzle.emoji,
+                                        style: const TextStyle(fontSize: 80),
+                                      ),
                                     ),
-                                  );
-                                }),
-                                // Show emoji when complete
-                                if (_levelComplete)
-                                  Center(
-                                    child: Text(
-                                      puzzle.emoji,
-                                      style: const TextStyle(fontSize: 80),
-                                    ),
-                                  ),
-                              ],
+                                ],
+                              ),
                             );
                           },
                         ),
@@ -505,23 +575,27 @@ class DotLinePainter extends CustomPainter {
   final DotPuzzle puzzle;
   final List<int> connectedDots;
   final bool levelComplete;
+  final Offset? currentDragPosition;
+  final bool isDragging;
 
   DotLinePainter({
     required this.puzzle,
     required this.connectedDots,
     required this.levelComplete,
+    this.currentDragPosition,
+    this.isDragging = false,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (connectedDots.length < 2) return;
-
     final paint = Paint()
       ..color = levelComplete ? puzzle.color : puzzle.color.withOpacity(0.7)
       ..style = PaintingStyle.stroke
       ..strokeWidth = levelComplete ? 6 : 4
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
+
+    if (connectedDots.isEmpty) return;
 
     final path = Path();
 
@@ -535,6 +609,11 @@ class DotLinePainter extends CustomPainter {
       } else {
         path.lineTo(point.dx, point.dy);
       }
+    }
+
+    // Draw line to current drag position
+    if (isDragging && currentDragPosition != null && !levelComplete) {
+      path.lineTo(currentDragPosition!.dx, currentDragPosition!.dy);
     }
 
     // Close the shape when complete
