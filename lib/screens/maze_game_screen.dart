@@ -124,13 +124,19 @@ class _MazeGameScreenState extends State<MazeGameScreen> {
   }
 
   void _completeLevel() async {
+    if (_levelComplete) return; // Prevent multiple calls
+
     setState(() {
       _isDrawing = false;
       _levelComplete = true;
       _completedLevels++;
     });
 
-    await _audioPlayer.play(AssetSource('sounds/correct.mp3'));
+    try {
+      await _audioPlayer.play(AssetSource('sounds/correct.mp3'));
+    } catch (e) {
+      // Sound file may not exist, continue anyway
+    }
     _confettiController.play();
 
     await Future.delayed(const Duration(seconds: 2));
