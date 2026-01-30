@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'dart:math';
 
 class DrawLinesGameScreen extends StatefulWidget {
@@ -12,6 +13,7 @@ class DrawLinesGameScreen extends StatefulWidget {
 
 class _DrawLinesGameScreenState extends State<DrawLinesGameScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final FlutterTts _flutterTts = FlutterTts();
   late ConfettiController _confettiController;
 
   int _currentLevel = 0;
@@ -20,6 +22,17 @@ class _DrawLinesGameScreenState extends State<DrawLinesGameScreen> {
   bool _levelComplete = false;
   int _completedLevels = 0;
   double _accuracy = 0;
+
+  final List<String> _encouragements = [
+    'Great job!',
+    'Well done!',
+    'Awesome!',
+    'Perfect!',
+    'Fantastic!',
+    'Super!',
+    'Amazing!',
+    'Wonderful!',
+  ];
 
   final List<LineLesson> _lessons = [
     LineLesson(
@@ -70,11 +83,29 @@ class _DrawLinesGameScreenState extends State<DrawLinesGameScreen> {
   void initState() {
     super.initState();
     _confettiController = ConfettiController(duration: const Duration(seconds: 2));
+    _initTts();
+  }
+
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage('en-US');
+    await _flutterTts.setSpeechRate(0.4);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.2);
+  }
+
+  Future<void> _speak(String text) async {
+    await _flutterTts.stop();
+    await _flutterTts.speak(text);
+  }
+
+  String _getRandomEncouragement() {
+    return _encouragements[Random().nextInt(_encouragements.length)];
   }
 
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _flutterTts.stop();
     _confettiController.dispose();
     super.dispose();
   }
@@ -137,13 +168,21 @@ class _DrawLinesGameScreenState extends State<DrawLinesGameScreen> {
     });
 
     if (score >= 60) {
-      await _audioPlayer.play(AssetSource('sounds/correct.mp3'));
+      try {
+        await _audioPlayer.play(AssetSource('sounds/correct.mp3'));
+      } catch (e) {
+        // Sound file may not exist
+      }
       _confettiController.play();
 
       setState(() {
         _levelComplete = true;
         _completedLevels++;
       });
+
+      // Speak encouragement with line name
+      final lesson = _lessons[_currentLevel];
+      _speak('${_getRandomEncouragement()} You drew a ${lesson.name}!');
 
       await Future.delayed(const Duration(seconds: 2));
 
@@ -155,10 +194,16 @@ class _DrawLinesGameScreenState extends State<DrawLinesGameScreen> {
           _accuracy = 0;
         });
       } else {
+        _speak('You learned all the lines! Amazing!');
         _showWinDialog();
       }
     } else {
-      await _audioPlayer.play(AssetSource('sounds/incorrect.mp3'));
+      try {
+        await _audioPlayer.play(AssetSource('sounds/incorrect.mp3'));
+      } catch (e) {
+        // Sound file may not exist
+      }
+      _speak('Try again!');
     }
   }
 
