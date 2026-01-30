@@ -1,6 +1,8 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 class ConnectDotsGameScreen extends StatefulWidget {
   const ConnectDotsGameScreen({super.key});
@@ -11,6 +13,7 @@ class ConnectDotsGameScreen extends StatefulWidget {
 
 class _ConnectDotsGameScreenState extends State<ConnectDotsGameScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final FlutterTts _flutterTts = FlutterTts();
   late ConfettiController _confettiController;
 
   int _currentLevel = 0;
@@ -19,6 +22,24 @@ class _ConnectDotsGameScreenState extends State<ConnectDotsGameScreen> {
   int _completedLevels = 0;
   bool _isDragging = false;
   Offset? _currentDragPosition;
+
+  final List<String> _encouragements = [
+    'Great job!',
+    'Well done!',
+    'Awesome!',
+    'You did it!',
+    'Fantastic!',
+    'Super!',
+    'Amazing!',
+    'Wonderful!',
+  ];
+
+  final List<String> _dotEncouragements = [
+    'Good!',
+    'Nice!',
+    'Yes!',
+    'Keep going!',
+  ];
 
   final List<DotPuzzle> _puzzles = [
     // Star
@@ -111,11 +132,33 @@ class _ConnectDotsGameScreenState extends State<ConnectDotsGameScreen> {
   void initState() {
     super.initState();
     _confettiController = ConfettiController(duration: const Duration(seconds: 2));
+    _initTts();
+  }
+
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage('en-US');
+    await _flutterTts.setSpeechRate(0.4);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.2);
+  }
+
+  Future<void> _speak(String text) async {
+    await _flutterTts.stop();
+    await _flutterTts.speak(text);
+  }
+
+  String _getRandomEncouragement() {
+    return _encouragements[Random().nextInt(_encouragements.length)];
+  }
+
+  String _getRandomDotEncouragement() {
+    return _dotEncouragements[Random().nextInt(_dotEncouragements.length)];
   }
 
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _flutterTts.stop();
     _confettiController.dispose();
     super.dispose();
   }
@@ -144,6 +187,9 @@ class _ConnectDotsGameScreenState extends State<ConnectDotsGameScreen> {
           } catch (e) {
             // Sound file may not exist
           }
+
+          // Speak the number
+          _speak('${dot.number}');
 
           // Check if this completes the puzzle
           if (_connectedDots.length == puzzle.dots.length) {
@@ -182,6 +228,9 @@ class _ConnectDotsGameScreenState extends State<ConnectDotsGameScreen> {
             // Sound file may not exist
           }
 
+          // Speak the number
+          _speak('${dot.number}');
+
           // Check if this completes the puzzle
           if (_connectedDots.length == puzzle.dots.length) {
             _completeLevel();
@@ -214,6 +263,10 @@ class _ConnectDotsGameScreenState extends State<ConnectDotsGameScreen> {
     }
     _confettiController.play();
 
+    // Speak encouragement with shape name
+    final puzzle = _puzzles[_currentLevel];
+    _speak('${_getRandomEncouragement()} You made a ${puzzle.name}!');
+
     await Future.delayed(const Duration(seconds: 2));
 
     if (_currentLevel < _puzzles.length - 1) {
@@ -223,6 +276,7 @@ class _ConnectDotsGameScreenState extends State<ConnectDotsGameScreen> {
         _levelComplete = false;
       });
     } else {
+      _speak('You connected all the dots! Amazing job!');
       _showWinDialog();
     }
   }

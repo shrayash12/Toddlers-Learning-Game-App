@@ -1,6 +1,8 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 class MazeGameScreen extends StatefulWidget {
   const MazeGameScreen({super.key});
@@ -11,6 +13,7 @@ class MazeGameScreen extends StatefulWidget {
 
 class _MazeGameScreenState extends State<MazeGameScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final FlutterTts _flutterTts = FlutterTts();
   late ConfettiController _confettiController;
 
   int _currentLevel = 0;
@@ -18,6 +21,17 @@ class _MazeGameScreenState extends State<MazeGameScreen> {
   bool _isDrawing = false;
   bool _levelComplete = false;
   int _completedLevels = 0;
+
+  final List<String> _encouragements = [
+    'Great job!',
+    'Well done!',
+    'Awesome!',
+    'You did it!',
+    'Fantastic!',
+    'Super!',
+    'Amazing!',
+    'Wonderful!',
+  ];
 
   final List<MazeLevel> _levels = [
     MazeLevel(
@@ -66,11 +80,29 @@ class _MazeGameScreenState extends State<MazeGameScreen> {
   void initState() {
     super.initState();
     _confettiController = ConfettiController(duration: const Duration(seconds: 2));
+    _initTts();
+  }
+
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage('en-US');
+    await _flutterTts.setSpeechRate(0.4);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.2);
+  }
+
+  Future<void> _speak(String text) async {
+    await _flutterTts.stop();
+    await _flutterTts.speak(text);
+  }
+
+  String _getRandomEncouragement() {
+    return _encouragements[Random().nextInt(_encouragements.length)];
   }
 
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _flutterTts.stop();
     _confettiController.dispose();
     super.dispose();
   }
@@ -139,6 +171,9 @@ class _MazeGameScreenState extends State<MazeGameScreen> {
     }
     _confettiController.play();
 
+    // Speak encouragement
+    _speak(_getRandomEncouragement());
+
     await Future.delayed(const Duration(seconds: 2));
 
     if (_currentLevel < _levels.length - 1) {
@@ -148,6 +183,7 @@ class _MazeGameScreenState extends State<MazeGameScreen> {
         _levelComplete = false;
       });
     } else {
+      _speak('You completed all mazes! You are a star!');
       _showWinDialog();
     }
   }
