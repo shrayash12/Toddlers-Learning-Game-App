@@ -23,8 +23,43 @@ class BabyGamesApp extends StatelessWidget {
         ),
         fontFamily: 'Roboto',
         useMaterial3: true,
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: SlidePageTransitionsBuilder(),
+            TargetPlatform.iOS: SlidePageTransitionsBuilder(),
+            TargetPlatform.macOS: SlidePageTransitionsBuilder(),
+            TargetPlatform.windows: SlidePageTransitionsBuilder(),
+            TargetPlatform.linux: SlidePageTransitionsBuilder(),
+          },
+        ),
       ),
       home: const HomeScreen(),
+    );
+  }
+}
+
+/// Custom slide page transition that slides from right when navigating forward
+/// and slides from left when navigating back
+class SlidePageTransitionsBuilder extends PageTransitionsBuilder {
+  const SlidePageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return SlideTransition(
+      position: Tween<Offset>(
+        begin: const Offset(1.0, 0.0),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeInOut,
+      )),
+      child: child,
     );
   }
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'dart:async';
+import 'dart:math';
 
 class PottyTrainingGameScreen extends StatefulWidget {
   const PottyTrainingGameScreen({super.key});
@@ -13,6 +15,7 @@ class PottyTrainingGameScreen extends StatefulWidget {
 class _PottyTrainingGameScreenState extends State<PottyTrainingGameScreen>
     with TickerProviderStateMixin {
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final FlutterTts _flutterTts = FlutterTts();
   late ConfettiController _confettiController;
   late AnimationController _bounceController;
   late Animation<double> _bounceAnimation;
@@ -21,6 +24,19 @@ class _PottyTrainingGameScreenState extends State<PottyTrainingGameScreen>
   int _starsEarned = 0;
   bool _showCelebration = false;
   bool _stepComplete = false;
+
+  final List<String> _encouragements = [
+    'Great job!',
+    'Well done!',
+    'Awesome!',
+    'You did it!',
+    'Fantastic!',
+    'Super!',
+    'Amazing!',
+    'Wonderful!',
+    'Good job!',
+    'Excellent!',
+  ];
 
   final List<PottyStep> _steps = [
     PottyStep(
@@ -109,11 +125,40 @@ class _PottyTrainingGameScreenState extends State<PottyTrainingGameScreen>
       CurvedAnimation(parent: _bounceController, curve: Curves.elasticOut),
     );
     _bounceController.repeat(reverse: true);
+    _initTts();
+  }
+
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage('en-US');
+    await _flutterTts.setSpeechRate(0.4);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.2);
+    // Speak the first instruction after a short delay
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        _speakInstruction();
+      }
+    });
+  }
+
+  Future<void> _speak(String text) async {
+    await _flutterTts.stop();
+    await _flutterTts.speak(text);
+  }
+
+  void _speakInstruction() {
+    final step = _steps[_currentStep];
+    _speak('${step.title}. ${step.instruction}');
+  }
+
+  String _getRandomEncouragement() {
+    return _encouragements[Random().nextInt(_encouragements.length)];
   }
 
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _flutterTts.stop();
     _confettiController.dispose();
     _bounceController.dispose();
     super.dispose();
@@ -122,7 +167,13 @@ class _PottyTrainingGameScreenState extends State<PottyTrainingGameScreen>
   void _onStepTapped() async {
     if (_stepComplete) return;
 
-    await _audioPlayer.play(AssetSource('sounds/correct.mp3'));
+    try {
+      await _audioPlayer.play(AssetSource('sounds/correct.mp3'));
+    } catch (e) {
+      // Sound file may not exist
+    }
+
+    if (!mounted) return;
 
     setState(() {
       _stepComplete = true;
@@ -132,7 +183,13 @@ class _PottyTrainingGameScreenState extends State<PottyTrainingGameScreen>
 
     _confettiController.play();
 
+    // Speak celebration
+    final step = _steps[_currentStep];
+    _speak('${_getRandomEncouragement()} ${step.celebration}');
+
     await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
 
     if (_currentStep < _steps.length - 1) {
       setState(() {
@@ -140,7 +197,14 @@ class _PottyTrainingGameScreenState extends State<PottyTrainingGameScreen>
         _stepComplete = false;
         _showCelebration = false;
       });
+      // Speak next instruction
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          _speakInstruction();
+        }
+      });
     } else {
+      _speak('You are a super star! You learned all the potty steps!');
       _showFinalCelebration();
     }
   }
