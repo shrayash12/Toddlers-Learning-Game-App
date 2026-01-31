@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'dart:math';
 
 class OrganizingGameScreen extends StatefulWidget {
@@ -12,6 +13,7 @@ class OrganizingGameScreen extends StatefulWidget {
 
 class _OrganizingGameScreenState extends State<OrganizingGameScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final FlutterTts _flutterTts = FlutterTts();
   late ConfettiController _confettiController;
   final Random _random = Random();
 
@@ -21,6 +23,66 @@ class _OrganizingGameScreenState extends State<OrganizingGameScreen> {
   int _correctPlacements = 0;
   bool _levelComplete = false;
   int _completedLevels = 0;
+
+  final List<String> _correctPhrases = [
+    'Correct!',
+    'Great job!',
+    'Well done!',
+    'Perfect!',
+    'Awesome!',
+    'Good!',
+  ];
+
+  final List<String> _wrongPhrases = [
+    'Try again!',
+    'Oops! Wrong basket!',
+    'Not quite!',
+    'Try the other one!',
+  ];
+
+  // Map emojis to spoken names
+  final Map<String, String> _emojiNames = {
+    '🍎': 'Apple',
+    '🍊': 'Orange',
+    '🍌': 'Banana',
+    '🍇': 'Grapes',
+    '🥕': 'Carrot',
+    '🥦': 'Broccoli',
+    '🌽': 'Corn',
+    '🥬': 'Lettuce',
+    '🧸': 'Teddy Bear',
+    '🎮': 'Game Controller',
+    '🚗': 'Red Car',
+    '⚽': 'Soccer Ball',
+    '📕': 'Red Book',
+    '📗': 'Green Book',
+    '📘': 'Blue Book',
+    '📙': 'Orange Book',
+    '🐄': 'Cow',
+    '🐷': 'Pig',
+    '🐔': 'Chicken',
+    '🐴': 'Horse',
+    '🦊': 'Fox',
+    '🐻': 'Bear',
+    '🦌': 'Deer',
+    '🐰': 'Rabbit',
+    '🐘': 'Elephant',
+    '🦒': 'Giraffe',
+    '🐋': 'Whale',
+    '🦕': 'Dinosaur',
+    '🐁': 'Mouse',
+    '🐜': 'Ant',
+    '🐛': 'Caterpillar',
+    '🦋': 'Butterfly',
+    '👔': 'Shirt',
+    '👚': 'Blouse',
+    '🎽': 'Tank Top',
+    '👘': 'Kimono',
+    '👖': 'Pants',
+    '🩳': 'Shorts',
+    '👗': 'Dress',
+    '🩱': 'Swimsuit',
+  };
 
   final List<SortingChallenge> _challenges = [
     SortingChallenge(
@@ -69,12 +131,41 @@ class _OrganizingGameScreenState extends State<OrganizingGameScreen> {
   void initState() {
     super.initState();
     _confettiController = ConfettiController(duration: const Duration(seconds: 2));
+    _initTts();
     _setupLevel();
+  }
+
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage('en-US');
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.1);
+    await _flutterTts.awaitSpeakCompletion(false);
+  }
+
+  void _speak(String text) {
+    _flutterTts.stop();
+    _flutterTts.speak(text);
+  }
+
+  void _speakItemName(String emoji) {
+    final name = _emojiNames[emoji] ?? 'Item';
+    _flutterTts.stop();
+    _flutterTts.speak(name);
+  }
+
+  String _getRandomCorrectPhrase() {
+    return _correctPhrases[_random.nextInt(_correctPhrases.length)];
+  }
+
+  String _getRandomWrongPhrase() {
+    return _wrongPhrases[_random.nextInt(_wrongPhrases.length)];
   }
 
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _flutterTts.stop();
     _confettiController.dispose();
     super.dispose();
   }
@@ -107,26 +198,22 @@ class _OrganizingGameScreenState extends State<OrganizingGameScreen> {
 
     if (item.correctCategory == categoryName) {
       // Correct placement
-      try {
-        _audioPlayer.play(AssetSource('sounds/correct.mp3'));
-      } catch (e) {
-        // Sound not available
-      }
       setState(() {
         _items[itemIndex].isPlaced = true;
         _correctPlacements++;
       });
 
+      // Speak random correct phrase
+      _speak(_getRandomCorrectPhrase());
+
       if (_correctPlacements == _items.length) {
-        _completeLevel();
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _completeLevel();
+        });
       }
     } else {
-      // Wrong placement - shake or give feedback
-      try {
-        _audioPlayer.play(AssetSource('sounds/incorrect.mp3'));
-      } catch (e) {
-        // Sound not available
-      }
+      // Wrong placement - speak random wrong phrase
+      _speak(_getRandomWrongPhrase());
     }
   }
 
@@ -138,14 +225,26 @@ class _OrganizingGameScreenState extends State<OrganizingGameScreen> {
 
     _confettiController.play();
 
+    // Speak level complete
+    _speak('Amazing! All sorted!');
+
     await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
 
     if (_currentLevel < _challenges.length - 1) {
       setState(() {
         _currentLevel++;
       });
       _setupLevel();
+      // Speak next challenge
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          _speak('Now sort ${_challenges[_currentLevel].title}!');
+        }
+      });
     } else {
+      _speak('You are a super organizer!');
       _showWinDialog();
     }
   }
@@ -338,48 +437,54 @@ class _OrganizingGameScreenState extends State<OrganizingGameScreen> {
                           children: _items
                               .where((item) => !item.isPlaced)
                               .map((item) {
-                            return Draggable<String>(
-                              data: item.emoji,
-                              onDragStarted: () {
-                                setState(() {
-                                  _draggedItem = item.emoji;
-                                });
+                            return GestureDetector(
+                              onTapDown: (_) {
+                                // Speak the item name when touched
+                                _speakItemName(item.emoji);
                               },
-                              onDragEnd: (_) {
-                                setState(() {
-                                  _draggedItem = null;
-                                });
-                              },
-                              feedback: Material(
-                                color: Colors.transparent,
-                                child: Text(
-                                  item.emoji,
-                                  style: const TextStyle(fontSize: 50),
+                              child: Draggable<String>(
+                                data: item.emoji,
+                                onDragStarted: () {
+                                  setState(() {
+                                    _draggedItem = item.emoji;
+                                  });
+                                },
+                                onDragEnd: (_) {
+                                  setState(() {
+                                    _draggedItem = null;
+                                  });
+                                },
+                                feedback: Material(
+                                  color: Colors.transparent,
+                                  child: Text(
+                                    item.emoji,
+                                    style: const TextStyle(fontSize: 50),
+                                  ),
                                 ),
-                              ),
-                              childWhenDragging: Opacity(
-                                opacity: 0.3,
-                                child: Text(
-                                  item.emoji,
-                                  style: const TextStyle(fontSize: 40),
+                                childWhenDragging: Opacity(
+                                  opacity: 0.3,
+                                  child: Text(
+                                    item.emoji,
+                                    style: const TextStyle(fontSize: 40),
+                                  ),
                                 ),
-                              ),
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(15),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.grey.shade300,
-                                      blurRadius: 5,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Text(
-                                  item.emoji,
-                                  style: const TextStyle(fontSize: 40),
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(15),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.grey.shade300,
+                                        blurRadius: 5,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    item.emoji,
+                                    style: const TextStyle(fontSize: 40),
+                                  ),
                                 ),
                               ),
                             );
