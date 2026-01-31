@@ -51,7 +51,7 @@ class PremiumScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Get access to 11 amazing educational games',
+                        'Get access to 12 amazing educational games',
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.white.withOpacity(0.9),
@@ -113,6 +113,11 @@ class PremiumScreen extends StatelessWidget {
                         icon: Icons.category,
                         title: 'Organizing Game',
                         description: 'Sort and organize objects into groups',
+                      ),
+                      _FeatureItem(
+                        icon: Icons.brush,
+                        title: 'Coloring Game',
+                        description: 'Color fun sketches and pictures',
                       ),
                       const SizedBox(height: 40),
                       Container(

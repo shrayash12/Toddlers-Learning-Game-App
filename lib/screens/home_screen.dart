@@ -18,6 +18,7 @@ import 'find_difference_game_screen.dart';
 import 'draw_lines_game_screen.dart';
 import 'potty_training_game_screen.dart';
 import 'organizing_game_screen.dart';
+import 'coloring_game_screen.dart';
 import '../services/premium_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -619,6 +620,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       floatController: _floatController,
                       pulseController: _pulseController,
                       onTap: () => _navigateToPremiumGame(context, const DrawLinesGameScreen()),
+                    ),
+                    _AnimatedPremiumCard(
+                      title: 'Coloring',
+                      subtitle: 'Color Sketches',
+                      icon: Icons.brush,
+                      color: Colors.pink.shade400,
+                      isPremium: _premiumService.isPremium,
+                      delay: 10,
+                      floatController: _floatController,
+                      pulseController: _pulseController,
+                      onTap: () => _navigateToPremiumGame(context, const ColoringGameScreen()),
                     ),
                   ]),
                 ),
