@@ -47,6 +47,9 @@ dependencies:
   # Local storage for premium status
   shared_preferences: ^2.2.2
 
+  # In-app purchases
+  in_app_purchase: ^3.1.13
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

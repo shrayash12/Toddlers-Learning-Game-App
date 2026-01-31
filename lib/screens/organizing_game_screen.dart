@@ -40,49 +40,62 @@ class _OrganizingGameScreenState extends State<OrganizingGameScreen> {
     'Try the other one!',
   ];
 
-  // Map emojis to spoken names
-  final Map<String, String> _emojiNames = {
-    '🍎': 'Apple',
-    '🍊': 'Orange',
-    '🍌': 'Banana',
-    '🍇': 'Grapes',
-    '🥕': 'Carrot',
-    '🥦': 'Broccoli',
-    '🌽': 'Corn',
-    '🥬': 'Lettuce',
-    '🧸': 'Teddy Bear',
-    '🎮': 'Game Controller',
-    '🚗': 'Red Car',
-    '⚽': 'Soccer Ball',
-    '📕': 'Red Book',
-    '📗': 'Green Book',
-    '📘': 'Blue Book',
-    '📙': 'Orange Book',
-    '🐄': 'Cow',
-    '🐷': 'Pig',
-    '🐔': 'Chicken',
-    '🐴': 'Horse',
-    '🦊': 'Fox',
-    '🐻': 'Bear',
-    '🦌': 'Deer',
-    '🐰': 'Rabbit',
-    '🐘': 'Elephant',
-    '🦒': 'Giraffe',
-    '🐋': 'Whale',
-    '🦕': 'Dinosaur',
-    '🐁': 'Mouse',
-    '🐜': 'Ant',
-    '🐛': 'Caterpillar',
-    '🦋': 'Butterfly',
-    '👔': 'Shirt',
-    '👚': 'Blouse',
-    '🎽': 'Tank Top',
-    '👘': 'Kimono',
-    '👖': 'Pants',
-    '🩳': 'Shorts',
-    '👗': 'Dress',
-    '🩱': 'Swimsuit',
-  };
+  // Get spoken name for emoji
+  String _getEmojiName(String emoji) {
+    switch (emoji) {
+      // Level 1 - Fruits
+      case '🍎': return 'Apple';
+      case '🍊': return 'Orange';
+      case '🍌': return 'Banana';
+      case '🍇': return 'Grapes';
+      // Level 1 - Vegetables
+      case '🥕': return 'Carrot';
+      case '🥦': return 'Broccoli';
+      case '🌽': return 'Corn';
+      case '🥬': return 'Lettuce';
+      // Level 2 - Toys
+      case '🧸': return 'Teddy Bear';
+      case '🎮': return 'Game Controller';
+      case '🚗': return 'Red Car';
+      case '⚽': return 'Soccer Ball';
+      // Level 2 - Books
+      case '📕': return 'Red Book';
+      case '📗': return 'Green Book';
+      case '📘': return 'Blue Book';
+      case '📙': return 'Orange Book';
+      // Level 3 - Farm Animals
+      case '🐄': return 'Cow';
+      case '🐷': return 'Pig';
+      case '🐔': return 'Chicken';
+      case '🐴': return 'Horse';
+      // Level 3 - Forest Animals
+      case '🦊': return 'Fox';
+      case '🐻': return 'Bear';
+      case '🦌': return 'Deer';
+      case '🐰': return 'Rabbit';
+      // Level 4 - Big Animals
+      case '🐘': return 'Elephant';
+      case '🦒': return 'Giraffe';
+      case '🐋': return 'Whale';
+      case '🦕': return 'Dinosaur';
+      // Level 4 - Small Animals
+      case '🐁': return 'Mouse';
+      case '🐜': return 'Ant';
+      case '🐛': return 'Caterpillar';
+      case '🦋': return 'Butterfly';
+      // Level 5 - Tops
+      case '👔': return 'Shirt';
+      case '👚': return 'Blouse';
+      case '🎽': return 'Tank Top';
+      case '👘': return 'Kimono';
+      // Level 5 - Bottoms
+      case '👖': return 'Pants';
+      case '🩳': return 'Shorts';
+      case '👗': return 'Dress';
+      case '🩱': return 'Swimsuit';
+      default: return 'Item';
+    }
+  }
 
   final List<SortingChallenge> _challenges = [
     SortingChallenge(
@@ -143,14 +156,16 @@ class _OrganizingGameScreenState extends State<OrganizingGameScreen> {
     await _flutterTts.awaitSpeakCompletion(false);
   }
 
-  void _speak(String text) {
-    _flutterTts.stop();
+  void _speak(String text) async {
+    await _flutterTts.stop();
+    await Future.delayed(const Duration(milliseconds: 50));
     _flutterTts.speak(text);
   }
 
-  void _speakItemName(String emoji) {
-    final name = _emojiNames[emoji] ?? 'Item';
-    _flutterTts.stop();
+  void _speakItemName(String emoji) async {
+    final name = _getEmojiName(emoji);
+    await _flutterTts.stop();
+    await Future.delayed(const Duration(milliseconds: 50));
     _flutterTts.speak(name);
   }
 
@@ -187,6 +202,10 @@ class _OrganizingGameScreenState extends State<OrganizingGameScreen> {
     _items.shuffle(_random);
     _correctPlacements = 0;
     _levelComplete = false;
+
+    // Re-initialize TTS for new level
+    _flutterTts.stop();
+
     setState(() {});
   }
 
