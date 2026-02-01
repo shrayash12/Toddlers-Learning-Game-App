@@ -1,29 +1,31 @@
-import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:flutter/services.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
 class PremiumService extends ChangeNotifier {
-  static const String _premiumKey = 'is_premium_unlocked';
   static final PremiumService _instance = PremiumService._internal();
 
-  // Product ID - must match the ID configured in App Store Connect / Google Play Console
-  static const String premiumProductId = 'premium_games_bundle';
+  // RevenueCat API Keys - Replace these with your actual keys from RevenueCat dashboard
+  // Get your keys at: https://app.revenuecat.com/
+  static const String _googleApiKey = 'YOUR_REVENUECAT_GOOGLE_API_KEY';
+  static const String _appleApiKey = 'YOUR_REVENUECAT_APPLE_API_KEY';
+
+  // Entitlement ID - This is configured in RevenueCat dashboard
+  // Create an entitlement called "premium" that includes your product
+  static const String entitlementId = 'premium';
 
   factory PremiumService() => _instance;
   PremiumService._internal();
 
-  final InAppPurchase _inAppPurchase = InAppPurchase.instance;
-  StreamSubscription<List<PurchaseDetails>>? _subscription;
-
   bool _isPremium = false;
   bool get isPremium => _isPremium;
 
-  bool _isAvailable = false;
-  bool get isStoreAvailable => _isAvailable;
+  bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
 
-  List<ProductDetails> _products = [];
-  List<ProductDetails> get products => _products;
+  Offerings? _offerings;
+  Offerings? get offerings => _offerings;
 
   bool _purchasePending = false;
   bool get purchasePending => _purchasePending;
@@ -31,140 +33,186 @@ class PremiumService extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
+  /// Get the current product package (for displaying price)
+  Package? get currentPackage {
+    return _offerings?.current?.lifetime ??
+           _offerings?.current?.availablePackages.firstOrNull;
+  }
+
+  /// Get the price string to display
+  String get priceString {
+    return currentPackage?.storeProduct.priceString ?? 'Loading...';
+  }
+
   Future<void> initialize() async {
-    // Load saved premium status
-    final prefs = await SharedPreferences.getInstance();
-    _isPremium = prefs.getBool(_premiumKey) ?? false;
+    try {
+      // Configure RevenueCat
+      late PurchasesConfiguration configuration;
 
-    // Check if store is available
-    _isAvailable = await _inAppPurchase.isAvailable();
-
-    if (_isAvailable) {
-      // Listen to purchase updates
-      final Stream<List<PurchaseDetails>> purchaseUpdated = _inAppPurchase.purchaseStream;
-      _subscription = purchaseUpdated.listen(
-        _onPurchaseUpdate,
-        onDone: _onPurchaseDone,
-        onError: _onPurchaseError,
-      );
-
-      // Load products
-      await _loadProducts();
-    }
-
-    notifyListeners();
-  }
-
-  Future<void> _loadProducts() async {
-    final Set<String> productIds = {premiumProductId};
-    final ProductDetailsResponse response = await _inAppPurchase.queryProductDetails(productIds);
-
-    if (response.notFoundIDs.isNotEmpty) {
-      debugPrint('Products not found: ${response.notFoundIDs}');
-    }
-
-    _products = response.productDetails;
-    notifyListeners();
-  }
-
-  void _onPurchaseUpdate(List<PurchaseDetails> purchaseDetailsList) {
-    for (final PurchaseDetails purchaseDetails in purchaseDetailsList) {
-      if (purchaseDetails.status == PurchaseStatus.pending) {
-        _purchasePending = true;
-        notifyListeners();
+      if (Platform.isAndroid) {
+        configuration = PurchasesConfiguration(_googleApiKey);
+      } else if (Platform.isIOS) {
+        configuration = PurchasesConfiguration(_appleApiKey);
       } else {
-        if (purchaseDetails.status == PurchaseStatus.error) {
-          _handleError(purchaseDetails.error);
-          _purchasePending = false;
-        } else if (purchaseDetails.status == PurchaseStatus.purchased ||
-                   purchaseDetails.status == PurchaseStatus.restored) {
-          _verifyAndDeliverPurchase(purchaseDetails);
-        }
-
-        if (purchaseDetails.pendingCompletePurchase) {
-          _inAppPurchase.completePurchase(purchaseDetails);
-        }
+        // Unsupported platform
+        debugPrint('RevenueCat: Unsupported platform');
+        _isInitialized = true;
+        notifyListeners();
+        return;
       }
+
+      await Purchases.configure(configuration);
+
+      // Enable debug logs in debug mode
+      if (kDebugMode) {
+        await Purchases.setLogLevel(LogLevel.debug);
+      }
+
+      // Check current customer info for premium status
+      await _updatePremiumStatus();
+
+      // Load available offerings (products)
+      await _loadOfferings();
+
+      // Listen to customer info updates
+      Purchases.addCustomerInfoUpdateListener(_onCustomerInfoUpdated);
+
+      _isInitialized = true;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('RevenueCat initialization error: $e');
+      _errorMessage = 'Failed to initialize purchases. Please restart the app.';
+      _isInitialized = true;
+      notifyListeners();
     }
   }
 
-  void _onPurchaseDone() {
-    _subscription?.cancel();
-  }
-
-  void _onPurchaseError(dynamic error) {
-    debugPrint('Purchase stream error: $error');
-  }
-
-  void _handleError(IAPError? error) {
-    _errorMessage = error?.message ?? 'Purchase failed';
-    _purchasePending = false;
-    notifyListeners();
-  }
-
-  Future<void> _verifyAndDeliverPurchase(PurchaseDetails purchaseDetails) async {
-    // In a production app, verify the purchase with your server
-    // For now, we trust the purchase and unlock premium
-    if (purchaseDetails.productID == premiumProductId) {
-      await _unlockPremium();
+  Future<void> _loadOfferings() async {
+    try {
+      _offerings = await Purchases.getOfferings();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to load offerings: $e');
     }
-    _purchasePending = false;
-    notifyListeners();
   }
 
-  Future<void> _unlockPremium() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_premiumKey, true);
-    _isPremium = true;
+  Future<void> _updatePremiumStatus() async {
+    try {
+      final customerInfo = await Purchases.getCustomerInfo();
+      _isPremium = customerInfo.entitlements.all[entitlementId]?.isActive ?? false;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to get customer info: $e');
+    }
+  }
+
+  void _onCustomerInfoUpdated(CustomerInfo customerInfo) {
+    _isPremium = customerInfo.entitlements.all[entitlementId]?.isActive ?? false;
+    _purchasePending = false;
     notifyListeners();
   }
 
   Future<bool> purchasePremium() async {
-    if (!_isAvailable) {
-      // Store not available - for testing, simulate purchase
-      await _unlockPremium();
-      return true;
+    _errorMessage = null;
+
+    if (!_isInitialized) {
+      _errorMessage = 'Purchase system not ready. Please try again.';
+      notifyListeners();
+      return false;
     }
 
-    if (_products.isEmpty) {
-      // No products loaded - for testing, simulate purchase
-      await _unlockPremium();
-      return true;
+    final package = currentPackage;
+    if (package == null) {
+      _errorMessage = 'Product not available. Please try again later.';
+      notifyListeners();
+      return false;
     }
-
-    // Find the premium product
-    final ProductDetails? product = _products.firstWhere(
-      (p) => p.id == premiumProductId,
-      orElse: () => _products.first,
-    );
-
-    if (product == null) {
-      await _unlockPremium();
-      return true;
-    }
-
-    // Start the purchase
-    final PurchaseParam purchaseParam = PurchaseParam(productDetails: product);
 
     try {
-      final bool success = await _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
-      return success;
+      _purchasePending = true;
+      notifyListeners();
+
+      final customerInfo = await Purchases.purchasePackage(package);
+
+      _isPremium = customerInfo.entitlements.all[entitlementId]?.isActive ?? false;
+      _purchasePending = false;
+      notifyListeners();
+
+      return _isPremium;
+    } on PurchasesErrorCode catch (e) {
+      _purchasePending = false;
+
+      switch (e) {
+        case PurchasesErrorCode.purchaseCancelledError:
+          _errorMessage = 'Purchase was canceled';
+          break;
+        case PurchasesErrorCode.productNotAvailableForPurchaseError:
+          _errorMessage = 'Product not available for purchase';
+          break;
+        case PurchasesErrorCode.productAlreadyPurchasedError:
+          _errorMessage = 'You already own this product. Try restoring purchases.';
+          break;
+        case PurchasesErrorCode.networkError:
+          _errorMessage = 'Network error. Please check your connection.';
+          break;
+        case PurchasesErrorCode.paymentPendingError:
+          _errorMessage = 'Payment is pending. Please wait.';
+          break;
+        default:
+          _errorMessage = 'Purchase failed. Please try again.';
+      }
+
+      notifyListeners();
+      return false;
     } catch (e) {
+      _purchasePending = false;
       debugPrint('Purchase error: $e');
-      // For testing, simulate purchase on error
-      await _unlockPremium();
-      return true;
+
+      // Handle specific RevenueCat errors
+      if (e is PlatformException) {
+        final errorCode = PurchasesErrorHelper.getErrorCode(e);
+        if (errorCode == PurchasesErrorCode.purchaseCancelledError) {
+          _errorMessage = 'Purchase was canceled';
+        } else if (errorCode == PurchasesErrorCode.productAlreadyPurchasedError) {
+          _errorMessage = 'You already own this product. Try restoring purchases.';
+        } else {
+          _errorMessage = 'Purchase failed: ${e.message}';
+        }
+      } else {
+        _errorMessage = 'Purchase failed. Please try again.';
+      }
+
+      notifyListeners();
+      return false;
     }
   }
 
-  Future<void> restorePurchase() async {
-    if (_isAvailable) {
-      await _inAppPurchase.restorePurchases();
-    } else {
-      // Check local storage
-      final prefs = await SharedPreferences.getInstance();
-      _isPremium = prefs.getBool(_premiumKey) ?? false;
+  Future<bool> restorePurchases() async {
+    _errorMessage = null;
+
+    if (!_isInitialized) {
+      _errorMessage = 'Purchase system not ready. Please try again.';
       notifyListeners();
+      return false;
+    }
+
+    try {
+      _purchasePending = true;
+      notifyListeners();
+
+      final customerInfo = await Purchases.restorePurchases();
+
+      _isPremium = customerInfo.entitlements.all[entitlementId]?.isActive ?? false;
+      _purchasePending = false;
+      notifyListeners();
+
+      return _isPremium;
+    } catch (e) {
+      _purchasePending = false;
+      debugPrint('Restore error: $e');
+      _errorMessage = 'Failed to restore purchases. Please try again.';
+      notifyListeners();
+      return false;
     }
   }
 
@@ -175,7 +223,7 @@ class PremiumService extends ChangeNotifier {
 
   @override
   void dispose() {
-    _subscription?.cancel();
+    Purchases.removeCustomerInfoUpdateListener(_onCustomerInfoUpdated);
     super.dispose();
   }
 }

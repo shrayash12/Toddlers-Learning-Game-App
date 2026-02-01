@@ -47,8 +47,9 @@ dependencies:
   # Local storage for premium status
   shared_preferences: ^2.2.2
 
-  # In-app purchases
-  in_app_purchase: ^3.1.13
+  # RevenueCat for in-app purchases (handles receipt validation, no backend needed)
+  purchases_flutter: ^8.0.0
+
 
 dev_dependencies:
   flutter_test:

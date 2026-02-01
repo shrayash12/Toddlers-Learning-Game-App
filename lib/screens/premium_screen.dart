@@ -1,8 +1,154 @@
 import 'package:flutter/material.dart';
 import '../services/premium_service.dart';
 
-class PremiumScreen extends StatelessWidget {
+class PremiumScreen extends StatefulWidget {
   const PremiumScreen({super.key});
+
+  @override
+  State<PremiumScreen> createState() => _PremiumScreenState();
+}
+
+class _PremiumScreenState extends State<PremiumScreen> {
+  final PremiumService _premiumService = PremiumService();
+  bool _wasPurchasing = false;
+  bool _wasAlreadyPremium = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _wasAlreadyPremium = _premiumService.isPremium;
+    _premiumService.addListener(_onPremiumServiceUpdate);
+  }
+
+  @override
+  void dispose() {
+    _premiumService.removeListener(_onPremiumServiceUpdate);
+    super.dispose();
+  }
+
+  void _onPremiumServiceUpdate() {
+    if (mounted) {
+      setState(() {});
+
+      // Show error dialog if there's an error
+      if (_premiumService.errorMessage != null) {
+        _showErrorDialog(_premiumService.errorMessage!);
+        _premiumService.clearError();
+      }
+
+      // Show success only if we were purchasing and now have premium
+      if (_wasPurchasing &&
+          !_premiumService.purchasePending &&
+          _premiumService.isPremium &&
+          !_wasAlreadyPremium) {
+        _wasPurchasing = false;
+        _showSuccessDialog();
+      }
+
+      // Track purchase state
+      if (_premiumService.purchasePending) {
+        _wasPurchasing = true;
+      }
+    }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red, size: 30),
+            SizedBox(width: 10),
+            Text('Error'),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _handlePurchase();
+            },
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green, size: 30),
+            SizedBox(width: 10),
+            Text('Success!'),
+          ],
+        ),
+        content: const Text('Premium games are now unlocked! Enjoy learning!'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Go back to home
+            },
+            child: const Text('Start Playing!'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getPrice() {
+    return _premiumService.priceString;
+  }
+
+  void _handlePurchase() async {
+    if (_premiumService.purchasePending) return;
+
+    await _premiumService.purchasePremium();
+  }
+
+  void _handleRestore() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      ),
+    );
+
+    await _premiumService.restorePurchases();
+
+    if (mounted) {
+      Navigator.pop(context);
+
+      final isPremium = _premiumService.isPremium;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isPremium
+              ? 'Purchase restored successfully!'
+              : 'No previous purchase found.',
+          ),
+          backgroundColor: isPremium ? Colors.green : Colors.orange,
+        ),
+      );
+
+      if (isPremium) {
+        Navigator.pop(context);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -144,9 +290,9 @@ class PremiumScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            const Text(
-                              '\$4.99',
-                              style: TextStyle(
+                            Text(
+                              _getPrice(),
+                              style: const TextStyle(
                                 fontSize: 36,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.green,
@@ -163,22 +309,32 @@ class PremiumScreen extends StatelessWidget {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: () => _handlePurchase(context),
+                                onPressed: _premiumService.purchasePending ? null : _handlePurchase,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.orange,
+                                  disabledBackgroundColor: Colors.orange.withOpacity(0.5),
                                   padding: const EdgeInsets.symmetric(vertical: 16),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(30),
                                   ),
                                 ),
-                                child: const Text(
-                                  'Unlock Now',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                                child: _premiumService.purchasePending
+                                    ? const SizedBox(
+                                        height: 24,
+                                        width: 24,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Unlock Now',
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
                               ),
                             ),
                           ],
@@ -186,7 +342,7 @@ class PremiumScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 20),
                       TextButton(
-                        onPressed: () => _handleRestore(context),
+                        onPressed: _handleRestore,
                         child: const Text(
                           'Restore Purchase',
                           style: TextStyle(
@@ -205,83 +361,6 @@ class PremiumScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  void _handlePurchase(BuildContext context) async {
-    // Show loading
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      ),
-    );
-
-    // Simulate purchase (in real app, use in_app_purchase package)
-    await Future.delayed(const Duration(seconds: 1));
-    final success = await PremiumService().purchasePremium();
-
-    if (context.mounted) {
-      Navigator.pop(context); // Close loading
-
-      if (success) {
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: const Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.green, size: 30),
-                SizedBox(width: 10),
-                Text('Success!'),
-              ],
-            ),
-            content: const Text('Premium games are now unlocked! Enjoy learning!'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context); // Close dialog
-                  Navigator.pop(context); // Go back to home
-                },
-                child: const Text('Start Playing!'),
-              ),
-            ],
-          ),
-        );
-      }
-    }
-  }
-
-  void _handleRestore(BuildContext context) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      ),
-    );
-
-    await PremiumService().restorePurchase();
-
-    if (context.mounted) {
-      Navigator.pop(context);
-
-      final isPremium = PremiumService().isPremium;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            isPremium
-              ? 'Purchase restored successfully!'
-              : 'No previous purchase found.',
-          ),
-          backgroundColor: isPremium ? Colors.green : Colors.orange,
-        ),
-      );
-
-      if (isPremium) {
-        Navigator.pop(context);
-      }
-    }
   }
 }
 
