@@ -541,7 +541,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       delay: 4,
                       floatController: _floatController,
                       pulseController: _pulseController,
-                      onTap: () => _navigateToPremiumGame(context, const PuzzleGameScreen()),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PuzzleGameScreen())), // TODO: Add premium check back later
                     ),
                     _AnimatedPremiumCard(
                       title: 'Maze',
