@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Baby Games App Icon - iOS Style</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f5f5f7;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+        }
+        h1 { color: #333; margin-bottom: 10px; }
+        .subtitle { color: #666; margin-bottom: 30px; }
+
+        .preview-container {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        /* iOS-style icon container with shadow */
+        .icon-wrapper {
+            filter: drop-shadow(0 10px 30px rgba(0,0,0,0.2));
+        }
+
+        .icon-container {
+            width: 400px;
+            height: 400px;
+            border-radius: 90px; /* iOS superellipse approximation ~22% */
+            background: linear-gradient(135deg, #E991D1 0%, #C17DD8 25%, #A980E8 50%, #9088EC 75%, #8B9EF0 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .center-glow {
+            position: absolute;
+            width: 260px;
+            height: 260px;
+            left: 50%;
+            top: 48%;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, rgba(255,255,255,0.35) 0%, rgba(200,180,255,0.2) 40%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .element {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .abc {
+            left: 50%; top: 36%;
+            transform: translate(-50%, -50%);
+            font-size: 95px;
+            font-weight: 800;
+            color: white;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            animation: float 2.5s ease-in-out infinite;
+            letter-spacing: -2px;
+        }
+
+        .num123 {
+            left: 50%; top: 60%;
+            transform: translate(-50%, -50%);
+            font-size: 70px;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            animation: float 2.8s ease-in-out infinite 0.3s;
+            letter-spacing: 2px;
+        }
+
+        .star { right: 75px; top: 100px; font-size: 55px; animation: pulse-rotate 1.5s ease-in-out infinite; }
+        .palette { left: 35px; top: 35px; font-size: 50px; animation: wiggle 2s ease-in-out infinite; transform: rotate(-15deg); }
+        .rainbow { left: 35px; bottom: 40px; font-size: 50px; animation: bounce 2.2s ease-in-out infinite 0.5s; transform: rotate(-10deg); }
+        .teddy { right: 40px; bottom: 40px; font-size: 50px; animation: wiggle 2.5s ease-in-out infinite 0.2s; }
+
+        .element:not(.abc):not(.num123) {
+            filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.25));
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+            50% { transform: translate(-50%, -50%) translateY(-8px); }
+        }
+        @keyframes pulse-rotate {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.12) rotate(10deg); }
+            50% { transform: scale(1) rotate(0deg); }
+            75% { transform: scale(1.12) rotate(-10deg); }
+        }
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(-15deg) scale(1); }
+            50% { transform: rotate(5deg) scale(1.08); }
+        }
+        @keyframes bounce {
+            0%, 100% { transform: rotate(-10deg) translateY(0) scale(1); }
+            50% { transform: rotate(-10deg) translateY(-10px) scale(1.08); }
+        }
+
+        .small-previews {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .small-preview {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .small-icon {
+            border-radius: 22%;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+        .size-label {
+            color: #888;
+            font-size: 12px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 16px 32px;
+            font-size: 16px;
+            cursor: pointer;
+            background: white;
+            color: #764ba2;
+            border: none;
+            border-radius: 14px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+        button.primary {
+            background: linear-gradient(135deg, #E991D1, #8B9EF0);
+            color: white;
+            box-shadow: 0 4px 20px rgba(233,145,209,0.4);
+        }
+
+        .instructions {
+            max-width: 550px;
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        .instructions h3 { color: #764ba2; margin-bottom: 15px; }
+        code { background: #f5e6ff; padding: 4px 10px; border-radius: 6px; font-size: 13px; }
+        .note { color: #888; font-size: 13px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <h1>🎮 Baby Learning Games</h1>
+    <p class="subtitle">App Icon with iOS-style rounded corners</p>
+
+    <div class="preview-container">
+        <div class="icon-wrapper">
+            <div class="icon-container">
+                <div class="center-glow"></div>
+                <div class="element abc">ABC</div>
+                <div class="element num123">123</div>
+                <div class="element star">⭐</div>
+                <div class="element palette">🎨</div>
+                <div class="element rainbow">🌈</div>
+                <div class="element teddy">🧸</div>
+            </div>
+        </div>
+
+        <div class="small-previews">
+            <div class="small-preview">
+                <canvas id="preview180" class="small-icon" width="90" height="90"></canvas>
+                <span class="size-label">App Store</span>
+            </div>
+            <div class="small-preview">
+                <canvas id="preview120" class="small-icon" width="60" height="60"></canvas>
+                <span class="size-label">Home Screen</span>
+            </div>
+            <div class="small-preview">
+                <canvas id="preview80" class="small-icon" width="40" height="40"></canvas>
+                <span class="size-label">Spotlight</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="buttons">
+        <button class="primary" onclick="downloadIcon(1024)">📱 Download 1024x1024</button>
+        <button onclick="downloadIcon(512)">512x512</button>
+        <button onclick="downloadAllSizes()">📦 All Sizes</button>
+    </div>
+
+    <div class="instructions">
+        <h3>📋 Instructions:</h3>
+        <ol>
+            <li>Download the <strong>1024x1024</strong> icon</li>
+            <li>Save as <code>assets/app_icon.png</code></li>
+            <li>Run: <code>dart run flutter_launcher_icons</code></li>
+        </ol>
+        <p class="note">✨ iOS & Android will automatically apply rounded corners to your square icon image.</p>
+    </div>
+
+    <canvas id="hiddenCanvas" style="display:none;"></canvas>
+
+    <script>
+        function drawIcon(ctx, size) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+
+            // Background gradient (matching reference)
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#E991D1');
+            gradient.addColorStop(0.25, '#C17DD8');
+            gradient.addColorStop(0.5, '#A980E8');
+            gradient.addColorStop(0.75, '#9088EC');
+            gradient.addColorStop(1, '#8B9EF0');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+
+            // Center glow
+            const radialGradient = ctx.createRadialGradient(
+                size * 0.5, size * 0.48, 0,
+                size * 0.5, size * 0.48, size * 0.32
+            );
+            radialGradient.addColorStop(0, 'rgba(255, 255, 255, 0.35)');
+            radialGradient.addColorStop(0.4, 'rgba(200, 180, 255, 0.2)');
+            radialGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = radialGradient;
+            ctx.beginPath();
+            ctx.arc(size * 0.5, size * 0.48, size * 0.32, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Text shadow
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+            ctx.shadowBlur = size * 0.02;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = size * 0.01;
+
+            // ABC
+            ctx.fillStyle = 'white';
+            ctx.font = `800 ${size * 0.24}px -apple-system, "SF Pro Display", Arial, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('ABC', size * 0.48, size * 0.36);
+
+            // 123
+            ctx.font = `700 ${size * 0.175}px -apple-system, "SF Pro Display", Arial, sans-serif`;
+            ctx.fillText('123', size * 0.5, size * 0.60);
+
+            // Emoji shadow
+            ctx.shadowBlur = size * 0.015;
+            ctx.shadowOffsetY = size * 0.012;
+
+            // Emojis
+            const emojiSize = size * 0.125;
+            ctx.font = `${emojiSize}px "Apple Color Emoji", "Segoe UI Emoji", Arial`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+
+            // Paint palette - top left (rotated in appearance)
+            ctx.fillText('🎨', size * 0.085, size * 0.085);
+
+            // Star - on C
+            ctx.font = `${size * 0.14}px "Apple Color Emoji", "Segoe UI Emoji", Arial`;
+            ctx.fillText('⭐', size * 0.62, size * 0.2);
+
+            // Rainbow - bottom left
+            ctx.font = `${emojiSize}px "Apple Color Emoji", "Segoe UI Emoji", Arial`;
+            ctx.fillText('🌈', size * 0.085, size * 0.78);
+
+            // Teddy - bottom right
+            ctx.fillText('🧸', size * 0.78, size * 0.78);
+        }
+
+        // Draw previews with rounded corners
+        function drawRoundedPreview(canvasId, size, displaySize) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+
+            // Create temp canvas for full icon
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = size;
+            tempCanvas.height = size;
+            const tempCtx = tempCanvas.getContext('2d');
+            drawIcon(tempCtx, size);
+
+            // Draw with rounded corners
+            const radius = displaySize * 0.22;
+            ctx.beginPath();
+            ctx.roundRect(0, 0, displaySize, displaySize, radius);
+            ctx.clip();
+            ctx.drawImage(tempCanvas, 0, 0, displaySize, displaySize);
+        }
+
+        drawRoundedPreview('preview180', 512, 90);
+        drawRoundedPreview('preview120', 256, 60);
+        drawRoundedPreview('preview80', 192, 40);
+
+        function downloadIcon(targetSize) {
+            const canvas = document.getElementById('hiddenCanvas');
+            canvas.width = targetSize;
+            canvas.height = targetSize;
+            const ctx = canvas.getContext('2d');
+
+            drawIcon(ctx, targetSize);
+
+            const link = document.createElement('a');
+            link.download = `app_icon_${targetSize}x${targetSize}.png`;
+            link.href = canvas.toDataURL('image/png', 1.0);
+            link.click();
+        }
+
+        function downloadAllSizes() {
+            [1024, 512, 192, 144, 96, 72, 48].forEach((size, i) => {
+                setTimeout(() => downloadIcon(size), i * 400);
+            });
+        }
+    </script>
+</body>
+</html>
