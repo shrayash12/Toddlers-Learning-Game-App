@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'dart:math';
 
 class PuzzleGameScreen extends StatefulWidget {
@@ -11,6 +12,7 @@ class PuzzleGameScreen extends StatefulWidget {
 
 class _PuzzleGameScreenState extends State<PuzzleGameScreen> {
   late ConfettiController _confettiController;
+  final FlutterTts _flutterTts = FlutterTts();
 
   static const double _aspectRatio = 1.5;
 
@@ -99,16 +101,33 @@ class _PuzzleGameScreenState extends State<PuzzleGameScreen> {
   List<String> _shuffledPartIds = [];
   bool _solved = false;
 
+  // Feedback state
+  String? _feedbackMessage;
+  bool _feedbackIsCorrect = false;
+
   @override
   void initState() {
     super.initState();
     _confettiController =
         ConfettiController(duration: const Duration(seconds: 2));
+    _initTts();
+  }
+
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage('en-US');
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.2);
+  }
+
+  Future<void> _speak(String text) async {
+    await _flutterTts.speak(text);
   }
 
   @override
   void dispose() {
     _confettiController.dispose();
+    _flutterTts.stop();
     super.dispose();
   }
 
@@ -129,17 +148,34 @@ class _PuzzleGameScreenState extends State<PuzzleGameScreen> {
     _slotPlacements = {};
     _shuffledPartIds = puzzle.parts.map((p) => p.id).toList()..shuffle();
     _solved = false;
+    _feedbackMessage = null;
   }
 
   bool _isPartPlaced(String partId) => _slotPlacements.containsValue(partId);
 
   void _onPartDroppedOnSlot(String partId, int slotIndex) {
     if (_solved) return;
+    final puzzle = _currentPuzzle;
+    final isCorrect = puzzle.parts[slotIndex].id == partId;
+
     setState(() {
       _slotPlacements.removeWhere((_, v) => v == partId);
       _slotPlacements.remove(slotIndex);
       _slotPlacements[slotIndex] = partId;
+      _feedbackMessage = isCorrect ? 'Correct!' : 'Try Again!';
+      _feedbackIsCorrect = isCorrect;
     });
+
+    // Speak feedback
+    _speak(isCorrect ? 'Correct!' : 'Try again!');
+
+    // Hide feedback after delay
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) {
+        setState(() => _feedbackMessage = null);
+      }
+    });
+
     _checkSolved();
   }
 
@@ -156,8 +192,10 @@ class _PuzzleGameScreenState extends State<PuzzleGameScreen> {
     setState(() {
       _solved = true;
       _score += 10;
+      _feedbackMessage = null; // Hide any previous feedback
     });
     _confettiController.play();
+    _speak('Great job! You did it!');
     Future.delayed(const Duration(seconds: 2), () {
       if (!mounted) return;
       final puzzles = _puzzleCategories[_selectedCategory!]!;
@@ -477,6 +515,56 @@ class _PuzzleGameScreenState extends State<PuzzleGameScreen> {
               colors: [puzzle.color, Colors.amber, Colors.white, Colors.pink],
             ),
           ),
+
+          // Feedback overlay (Correct! / Try Again!)
+          if (_feedbackMessage != null)
+            Center(
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: const Duration(milliseconds: 200),
+                builder: (context, value, child) {
+                  return Transform.scale(
+                    scale: 0.5 + (value * 0.5),
+                    child: Opacity(opacity: value, child: child),
+                  );
+                },
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: _feedbackIsCorrect ? Colors.green : Colors.orange,
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                          color: (_feedbackIsCorrect ? Colors.green : Colors.orange)
+                              .withValues(alpha: 0.5),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4)),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _feedbackIsCorrect ? '✓' : '✗',
+                        style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        _feedbackMessage!,
+                        style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
 
           // Solved overlay
           if (_solved)
