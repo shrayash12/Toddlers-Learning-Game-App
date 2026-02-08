@@ -20,6 +20,7 @@ import 'potty_training_game_screen.dart';
 import 'organizing_game_screen.dart';
 import 'coloring_game_screen.dart';
 import '../services/premium_service.dart';
+import '../widgets/screen_lock_wrapper.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -104,7 +105,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               SliverToBoxAdapter(
                 child: Column(
                   children: [
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 10),
+                    // Screen Lock Toggle at top right
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: const [
+                          ScreenLockToggle(),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                     // Animated title
                     AnimatedBuilder(
                       animation: _pulseController,

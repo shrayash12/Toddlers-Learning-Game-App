@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 import 'services/premium_service.dart';
+import 'services/screen_lock_service.dart';
+import 'widgets/screen_lock_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await PremiumService().initialize();
+  await ScreenLockService().initialize();
   runApp(const BabyGamesApp());
 }
 
@@ -33,7 +36,7 @@ class BabyGamesApp extends StatelessWidget {
           },
         ),
       ),
-      home: const HomeScreen(),
+      home: const ScreenLockWrapper(child: HomeScreen()),
     );
   }
 }
