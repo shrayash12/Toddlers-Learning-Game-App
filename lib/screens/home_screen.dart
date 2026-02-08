@@ -20,6 +20,7 @@ import 'potty_training_game_screen.dart';
 import 'organizing_game_screen.dart';
 import 'coloring_game_screen.dart';
 import '../services/premium_service.dart';
+import '../services/razorpay_service.dart';
 import '../widgets/screen_lock_wrapper.dart';
 import '../widgets/play_timer_widgets.dart';
 
@@ -32,15 +33,20 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final PremiumService _premiumService = PremiumService();
+  final RazorpayService _razorpayService = RazorpayService();
   late AnimationController _floatController;
   late AnimationController _pulseController;
   late AnimationController _wiggleController;
   late AnimationController _starController;
 
+  // Check if user has premium from either service
+  bool get _isPremium => _premiumService.isPremium || _razorpayService.isPremium;
+
   @override
   void initState() {
     super.initState();
     _premiumService.addListener(_onPremiumChange);
+    _razorpayService.addListener(_onPremiumChange);
 
     // Floating animation
     _floatController = AnimationController(
@@ -70,6 +76,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void dispose() {
     _premiumService.removeListener(_onPremiumChange);
+    _razorpayService.removeListener(_onPremiumChange);
     _floatController.dispose();
     _pulseController.dispose();
     _wiggleController.dispose();
@@ -82,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _navigateToPremiumGame(BuildContext context, Widget screen) {
-    if (_premiumService.isPremium) {
+    if (_isPremium) {
       Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
     } else {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumScreen()));
@@ -390,7 +397,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         ),
                       ),
                       const Spacer(),
-                      if (!_premiumService.isPremium)
+                      if (!_isPremium)
                         AnimatedBuilder(
                           animation: _pulseController,
                           builder: (context, child) {
@@ -434,7 +441,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             );
                           },
                         ),
-                      if (_premiumService.isPremium)
+                      if (_isPremium)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
@@ -484,7 +491,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       subtitle: 'Learn to Spell',
                       icon: Icons.spellcheck,
                       color: Colors.purple.shade400,
-                      isPremium: _premiumService.isPremium,
+                      isPremium: _isPremium,
                       delay: 0,
                       floatController: _floatController,
                       pulseController: _pulseController,
@@ -495,7 +502,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       subtitle: 'Add & Subtract',
                       icon: Icons.calculate,
                       color: Colors.green.shade500,
-                      isPremium: _premiumService.isPremium,
+                      isPremium: _isPremium,
                       delay: 1,
                       floatController: _floatController,
                       pulseController: _pulseController,
@@ -506,7 +513,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       subtitle: 'Letter Sounds',
                       icon: Icons.record_voice_over,
                       color: Colors.teal.shade400,
-                      isPremium: _premiumService.isPremium,
+                      isPremium: _isPremium,
                       delay: 2,
                       floatController: _floatController,
                       pulseController: _pulseController,
@@ -517,7 +524,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       subtitle: 'Sort & Clean',
                       icon: Icons.category,
                       color: Colors.orange.shade500,
-                      isPremium: _premiumService.isPremium,
+                      isPremium: _isPremium,
                       delay: 3,
                       floatController: _floatController,
                       pulseController: _pulseController,
@@ -551,7 +558,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       subtitle: 'Solve Puzzles',
                       icon: Icons.extension,
                       color: Colors.indigo.shade400,
-                      isPremium: _premiumService.isPremium,
+                      isPremium: _isPremium,
                       delay: 4,
                       floatController: _floatController,
                       pulseController: _pulseController,
@@ -562,7 +569,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       subtitle: 'Find the Path',
                       icon: Icons.route,
                       color: Colors.deepPurple.shade400,
-                      isPremium: _premiumService.isPremium,
+                      isPremium: _isPremium,
                       delay: 5,
                       floatController: _floatController,
                       pulseController: _pulseController,
@@ -573,7 +580,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       subtitle: 'Find Animals',
                       icon: Icons.visibility,
                       color: Colors.pink.shade400,
-                      isPremium: _premiumService.isPremium,
+                      isPremium: _isPremium,
                       delay: 6,
                       floatController: _floatController,
                       pulseController: _pulseController,
@@ -584,7 +591,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       subtitle: 'Spot Changes',
                       icon: Icons.compare,
                       color: Colors.blueGrey.shade400,
-                      isPremium: _premiumService.isPremium,
+                      isPremium: _isPremium,
                       delay: 7,
                       floatController: _floatController,
                       pulseController: _pulseController,
@@ -618,7 +625,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       subtitle: 'Draw Shapes',
                       icon: Icons.timeline,
                       color: Colors.amber.shade600,
-                      isPremium: _premiumService.isPremium,
+                      isPremium: _isPremium,
                       delay: 8,
                       floatController: _floatController,
                       pulseController: _pulseController,
@@ -629,7 +636,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       subtitle: 'Trace & Learn',
                       icon: Icons.gesture,
                       color: Colors.cyan.shade500,
-                      isPremium: _premiumService.isPremium,
+                      isPremium: _isPremium,
                       delay: 9,
                       floatController: _floatController,
                       pulseController: _pulseController,
@@ -640,7 +647,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       subtitle: 'Color Sketches',
                       icon: Icons.brush,
                       color: Colors.pink.shade400,
-                      isPremium: _premiumService.isPremium,
+                      isPremium: _isPremium,
                       delay: 10,
                       floatController: _floatController,
                       pulseController: _pulseController,
@@ -674,7 +681,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       subtitle: 'Fun Training',
                       icon: Icons.child_care,
                       color: Colors.lime.shade600,
-                      isPremium: _premiumService.isPremium,
+                      isPremium: _isPremium,
                       delay: 10,
                       floatController: _floatController,
                       pulseController: _pulseController,

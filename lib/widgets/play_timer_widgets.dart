@@ -412,7 +412,7 @@ class TimerExpiredOverlay extends StatelessWidget {
       color: Colors.black87,
       child: SafeArea(
         child: Center(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(32),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -447,12 +447,14 @@ class TimerExpiredOverlay extends StatelessWidget {
                     color: Colors.white70,
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 30),
                 const Text(
                   '😴',
                   style: TextStyle(fontSize: 60),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 30),
+
+                // Parent Unlock Button
                 ElevatedButton.icon(
                   onPressed: onUnlock,
                   icon: const Icon(Icons.lock_open),
