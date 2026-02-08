@@ -21,6 +21,7 @@ import 'organizing_game_screen.dart';
 import 'coloring_game_screen.dart';
 import '../services/premium_service.dart';
 import '../widgets/screen_lock_wrapper.dart';
+import '../widgets/play_timer_widgets.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -106,12 +107,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Column(
                   children: [
                     const SizedBox(height: 10),
-                    // Screen Lock Toggle at top right
+                    // Screen Lock Toggle and Play Timer at top
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: const [
+                          PlayTimerDisplay(),
                           ScreenLockToggle(),
                         ],
                       ),
