@@ -477,13 +477,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 1.0,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
                   ),
                   delegate: SliverChildListDelegate([
                     _AnimatedPremiumCard(
@@ -544,13 +543,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 1.0,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
                   ),
                   delegate: SliverChildListDelegate([
                     _AnimatedPremiumCard(
@@ -611,13 +609,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 1.0,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
                   ),
                   delegate: SliverChildListDelegate([
                     _AnimatedPremiumCard(
@@ -667,13 +664,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 30),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 30),
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 1.0,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
                   ),
                   delegate: SliverChildListDelegate([
                     _AnimatedPremiumCard(
@@ -983,7 +979,7 @@ class _AnimatedPremiumCardState extends State<_AnimatedPremiumCard>
 
   @override
   Widget build(BuildContext context) {
-    final phaseOffset = widget.delay * 0.25;
+    final phaseOffset = widget.delay * 0.3;
 
     return GestureDetector(
       onTapDown: (_) {
@@ -1000,124 +996,80 @@ class _AnimatedPremiumCardState extends State<_AnimatedPremiumCard>
         _scaleController.forward();
       },
       child: AnimatedBuilder(
-        animation: Listenable.merge([widget.floatController, widget.pulseController, _scaleController]),
+        animation: Listenable.merge([widget.floatController, _scaleController]),
         builder: (context, child) {
           final floatValue = math.sin((widget.floatController.value + phaseOffset) * math.pi);
-          final shakeValue = widget.isPremium ? 0.0 : math.sin(widget.pulseController.value * math.pi * 4) * 0.02;
-
           return Transform.translate(
-            offset: Offset(0, floatValue * 3),
+            offset: Offset(0, floatValue * 4),
             child: Transform.scale(
               scale: _scaleController.value,
-              child: Transform.rotate(
-                angle: shakeValue,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: widget.isPremium ? widget.color : widget.color,
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.color.withOpacity(_isPressed ? 0.3 : 0.5),
+                      blurRadius: _isPressed ? 5 : 10,
+                      offset: Offset(0, _isPressed ? 2 : 5),
+                    ),
+                  ],
+                ),
                 child: Stack(
                   children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: widget.isPremium ? widget.color : widget.color.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(25),
-                        boxShadow: [
-                          BoxShadow(
-                            color: widget.color.withOpacity(widget.isPremium ? 0.5 : 0.2),
-                            blurRadius: _isPressed ? 5 : 10,
-                            offset: Offset(0, _isPressed ? 2 : 5),
-                          ),
-                          if (widget.isPremium)
-                            BoxShadow(
-                              color: widget.color.withOpacity(0.3),
-                              blurRadius: 15 + (widget.pulseController.value * 5),
-                              spreadRadius: widget.pulseController.value * 2,
-                            ),
-                        ],
-                      ),
+                    // Main content
+                    Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Transform.rotate(
-                            angle: math.sin((widget.floatController.value * 2 + phaseOffset) * math.pi) * 0.15,
+                            angle: math.sin((widget.floatController.value * 2 + phaseOffset) * math.pi) * 0.1,
                             child: Icon(
                               widget.icon,
                               size: 50,
-                              color: Colors.white.withOpacity(widget.isPremium ? 1 : 0.7),
+                              color: Colors.white,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             widget.title,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white.withOpacity(widget.isPremium ? 1 : 0.7),
+                              color: Colors.white,
                             ),
                           ),
                           Text(
                             widget.subtitle,
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.white.withOpacity(widget.isPremium ? 0.9 : 0.6),
+                              color: Colors.white.withOpacity(0.9),
                             ),
                           ),
                         ],
                       ),
                     ),
+                    // Lock badge for non-premium users
                     if (!widget.isPremium)
                       Positioned(
                         top: 10,
                         right: 10,
-                        child: Transform.scale(
-                          scale: 1.0 + (widget.pulseController.value * 0.2),
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.amber,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.amber.withOpacity(0.5),
-                                  blurRadius: 5 + (widget.pulseController.value * 5),
-                                  spreadRadius: widget.pulseController.value * 2,
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.lock,
-                              size: 18,
-                              color: Colors.white,
-                            ),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.amber,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.amber.withOpacity(0.5),
+                                blurRadius: 5,
+                              ),
+                            ],
                           ),
-                        ),
-                      ),
-                    if (widget.isPremium)
-                      Positioned(
-                        top: 10,
-                        right: 10,
-                        child: Transform.rotate(
-                          angle: math.sin(widget.floatController.value * math.pi * 2) * 0.1,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.amber,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Transform.rotate(
-                                  angle: widget.floatController.value * math.pi * 2,
-                                  child: const Icon(Icons.star, size: 14, color: Colors.white),
-                                ),
-                                const SizedBox(width: 2),
-                                const Text(
-                                  'PRO',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          child: const Icon(
+                            Icons.lock,
+                            size: 16,
+                            color: Colors.white,
                           ),
                         ),
                       ),

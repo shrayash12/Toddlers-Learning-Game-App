@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Play Store Icon Generator</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 2px solid #ccc;
+            margin: 20px;
+            border-radius: 20px;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .info {
+            margin-top: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Baby Learning Games - Play Store Icon</h1>
+    <canvas id="iconCanvas" width="512" height="512"></canvas>
+    <button onclick="downloadIcon()">Download Icon (512x512)</button>
+    <p class="info">Rounded corners + correct gradient + elements in safe zone</p>
+
+    <script>
+        const canvas = document.getElementById('iconCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function drawRoundedRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        function drawIcon() {
+            const size = 512;
+            const cornerRadius = 90; // Rounded corners
+
+            // Create clipping path for rounded corners
+            drawRoundedRect(ctx, 0, 0, size, size, cornerRadius);
+            ctx.clip();
+
+            // Create gradient background matching reference image (darker)
+            const gradient = ctx.createLinearGradient(0, 0, 0, size);
+            gradient.addColorStop(0, '#D4A5C9');    // Darker pink/lavender at top
+            gradient.addColorStop(0.35, '#B895D4'); // Purple
+            gradient.addColorStop(0.65, '#A48FD8'); // Medium purple
+            gradient.addColorStop(1, '#9585C8');    // Darker purple at bottom
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+
+            // Add subtle center glow
+            const radialGradient = ctx.createRadialGradient(size/2, size/2.2, 0, size/2, size/2.2, size/2);
+            radialGradient.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
+            radialGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = radialGradient;
+            ctx.fillRect(0, 0, size, size);
+
+            // Draw emojis - positioned inside safe zone
+            ctx.font = '50px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Art palette - top left (inside safe zone)
+            ctx.fillText('🎨', 90, 85);
+
+            // Star - next to ABC (top right of text)
+            ctx.fillText('⭐', 375, 160);
+
+            // Rainbow - bottom left (inside safe zone)
+            ctx.fillText('🌈', 90, 440);
+
+            // Teddy bear - bottom right (inside safe zone)
+            ctx.fillText('🧸', 425, 440);
+
+            // Draw "ABC" text
+            ctx.font = 'bold 130px Arial';
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Add shadow for depth
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+
+            ctx.fillText('ABC', size/2 - 15, 190);
+
+            // Draw "123" text
+            ctx.font = 'bold 100px Arial';
+            ctx.fillText('123', size/2, 310);
+
+            // Reset shadow
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+        }
+
+        function downloadIcon() {
+            const link = document.createElement('a');
+            link.download = 'baby_games_playstore_icon.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Draw the icon when page loads
+        drawIcon();
+    </script>
+</body>
+</html>
