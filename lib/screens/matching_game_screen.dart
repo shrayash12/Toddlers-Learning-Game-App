@@ -102,29 +102,45 @@ class _MatchingGameScreenState extends State<MatchingGameScreen> {
 
   void _checkAnswer(String answer) {
     final correct = _questions[_currentRound]['answer'] as String;
+    final isCorrect = answer == correct;
+
     setState(() {
       _selectedAnswer = answer;
       _showResult = true;
-      _isCorrect = answer == correct;
+      _isCorrect = isCorrect;
       if (_isCorrect) {
         _score++;
         _confettiController.play();
       }
     });
 
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      if (mounted) {
-        setState(() {
-          _showResult = false;
-          _selectedAnswer = null;
-          if (_currentRound < _questions.length - 1) {
-            _currentRound++;
-          } else {
-            _showGameComplete();
-          }
-        });
-      }
-    });
+    if (isCorrect) {
+      // Correct answer - move to next question after delay
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted) {
+          setState(() {
+            _showResult = false;
+            _selectedAnswer = null;
+            if (_currentRound < _questions.length - 1) {
+              _currentRound++;
+            } else {
+              _showGameComplete();
+            }
+          });
+        }
+      });
+    } else {
+      // Wrong answer - reset after delay and let them try again
+      Future.delayed(const Duration(milliseconds: 1200), () {
+        if (mounted) {
+          setState(() {
+            _showResult = false;
+            _selectedAnswer = null;
+            // Don't increment _currentRound - stay on same question
+          });
+        }
+      });
+    }
   }
 
   void _showGameComplete() {
@@ -304,7 +320,28 @@ class _MatchingGameScreenState extends State<MatchingGameScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 40),
+                          const SizedBox(height: 20),
+                          // Show feedback message
+                          if (_showResult)
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: _isCorrect ? Colors.green : Colors.orange,
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: Text(
+                                _isCorrect ? '✓ Correct!' : 'Try Again!',
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            )
+                          else
+                            const SizedBox(height: 46),
+                          const SizedBox(height: 20),
                           Wrap(
                             spacing: 15,
                             runSpacing: 15,
@@ -364,10 +401,11 @@ class _MatchingGameScreenState extends State<MatchingGameScreen> {
       }
     }
 
-    if (_showResult && option == correctAnswer && !_isCorrect) {
-      backgroundColor = Colors.green.shade100;
-      borderColor = Colors.green;
-    }
+    // Don't show correct answer when wrong - let them try again
+    // if (_showResult && option == correctAnswer && !_isCorrect) {
+    //   backgroundColor = Colors.green.shade100;
+    //   borderColor = Colors.green;
+    // }
 
     return GestureDetector(
       onTap: _showResult ? null : () => _checkAnswer(option),
