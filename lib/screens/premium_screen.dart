@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math';
-import '../services/razorpay_service.dart';
+import '../services/billing_service.dart';
 
 class PremiumScreen extends StatefulWidget {
   const PremiumScreen({super.key});
@@ -11,39 +11,39 @@ class PremiumScreen extends StatefulWidget {
 }
 
 class _PremiumScreenState extends State<PremiumScreen> {
-  final RazorpayService _razorpayService = RazorpayService();
+  final BillingService _billingService = BillingService();
 
   @override
   void initState() {
     super.initState();
-    _razorpayService.addListener(_onPaymentUpdate);
+    _billingService.addListener(_onBillingUpdate);
 
     // Set up callbacks
-    _razorpayService.onPaymentSuccess = _onPaymentSuccess;
-    _razorpayService.onPaymentError = _onPaymentError;
+    _billingService.onPurchaseSuccess = _onPurchaseSuccess;
+    _billingService.onPurchaseError = _onPurchaseError;
   }
 
   @override
   void dispose() {
-    _razorpayService.removeListener(_onPaymentUpdate);
-    _razorpayService.onPaymentSuccess = null;
-    _razorpayService.onPaymentError = null;
+    _billingService.removeListener(_onBillingUpdate);
+    _billingService.onPurchaseSuccess = null;
+    _billingService.onPurchaseError = null;
     super.dispose();
   }
 
-  void _onPaymentUpdate() {
+  void _onBillingUpdate() {
     if (mounted) {
       setState(() {});
     }
   }
 
-  void _onPaymentSuccess(String paymentId) {
+  void _onPurchaseSuccess() {
     if (mounted) {
-      _showSuccessDialog(paymentId);
+      _showSuccessDialog();
     }
   }
 
-  void _onPaymentError(String error) {
+  void _onPurchaseError(String error) {
     if (mounted) {
       _showErrorDialog(error);
     }
@@ -58,7 +58,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
           children: [
             Icon(Icons.error_outline, color: Colors.red, size: 30),
             SizedBox(width: 10),
-            Text('Payment Failed'),
+            Text('Purchase Failed'),
           ],
         ),
         content: Text(message),
@@ -70,7 +70,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _showPaymentDialog();
+              _showParentalGate();
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
             child: const Text('Try Again', style: TextStyle(color: Colors.white)),
@@ -80,7 +80,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
     );
   }
 
-  void _showSuccessDialog(String paymentId) {
+  void _showSuccessDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -97,29 +97,12 @@ class _PremiumScreenState extends State<PremiumScreen> {
               child: const Icon(Icons.check_circle, color: Colors.green, size: 60),
             ),
             const SizedBox(height: 16),
-            const Text('Payment Successful!'),
+            const Text('Purchase Successful!'),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Premium games are now unlocked!\nEnjoy learning with your little one!',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'Payment ID: $paymentId',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-              ),
-            ),
-          ],
+        content: const Text(
+          'Premium games are now unlocked!\nEnjoy learning with your little one!',
+          textAlign: TextAlign.center,
         ),
         actions: [
           SizedBox(
@@ -144,18 +127,26 @@ class _PremiumScreenState extends State<PremiumScreen> {
     );
   }
 
-  void _showPaymentDialog() {
+  void _showParentalGate() {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const PaymentVerificationDialog(),
-    ).then((result) {
-      if (result != null && result is Map) {
-        // User verified and provided details
-        _razorpayService.purchasePremium(
-          email: result['email'] ?? '',
-          phone: result['phone'] ?? '',
-        );
+      builder: (_) => const ParentalGateDialog(),
+    ).then((verified) {
+      if (verified == true) {
+        _billingService.purchasePremium();
+      }
+    });
+  }
+
+  void _restorePurchases() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const ParentalGateDialog(),
+    ).then((verified) {
+      if (verified == true) {
+        _billingService.restorePurchases();
       }
     });
   }
@@ -216,7 +207,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                       ),
                       const SizedBox(height: 30),
 
-                      // Payment Methods Banner
+                      // Google Play badge
                       Container(
                         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                         decoration: BoxDecoration(
@@ -225,14 +216,18 @@ class _PremiumScreenState extends State<PremiumScreen> {
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            _PaymentMethodIcon(icon: Icons.credit_card, label: 'Card'),
-                            const SizedBox(width: 16),
-                            _PaymentMethodIcon(icon: Icons.account_balance, label: 'UPI'),
-                            const SizedBox(width: 16),
-                            _PaymentMethodIcon(icon: Icons.phone_android, label: 'PhonePe'),
-                            const SizedBox(width: 16),
-                            _PaymentMethodIcon(icon: Icons.g_mobiledata, label: 'GPay'),
+                            Icon(Icons.play_arrow, color: Colors.white, size: 28),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Google Play Purchase',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -324,7 +319,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              RazorpayService.premiumPriceDisplay,
+                              _billingService.displayPrice,
                               style: const TextStyle(
                                 fontSize: 42,
                                 fontWeight: FontWeight.bold,
@@ -342,7 +337,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: _razorpayService.paymentPending ? null : _showPaymentDialog,
+                                onPressed: _billingService.purchasePending ? null : _showParentalGate,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.orange,
                                   disabledBackgroundColor: Colors.orange.withOpacity(0.5),
@@ -351,7 +346,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                                     borderRadius: BorderRadius.circular(30),
                                   ),
                                 ),
-                                child: _razorpayService.paymentPending
+                                child: _billingService.purchasePending
                                     ? const SizedBox(
                                         height: 24,
                                         width: 24,
@@ -377,25 +372,16 @@ class _PremiumScreenState extends State<PremiumScreen> {
                                       ),
                               ),
                             ),
-                            const SizedBox(height: 16),
-                            // Payment methods row
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.credit_card, size: 20, color: Colors.grey.shade600),
-                                const SizedBox(width: 8),
-                                Icon(Icons.account_balance, size: 20, color: Colors.grey.shade600),
-                                const SizedBox(width: 8),
-                                Icon(Icons.phone_android, size: 20, color: Colors.grey.shade600),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'Card \u2022 UPI \u2022 PhonePe \u2022 GPay',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
-                                  ),
+                            const SizedBox(height: 12),
+                            TextButton(
+                              onPressed: _billingService.purchasePending ? null : _restorePurchases,
+                              child: const Text(
+                                'Restore Previous Purchase',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 14,
                                 ),
-                              ],
+                              ),
                             ),
                           ],
                         ),
@@ -408,7 +394,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                           Icon(Icons.security, color: Colors.white.withOpacity(0.8), size: 18),
                           const SizedBox(width: 6),
                           Text(
-                            'Secure Payment by Razorpay',
+                            'Secure Payment via Google Play',
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.8),
                               fontSize: 14,
@@ -425,27 +411,6 @@ class _PremiumScreenState extends State<PremiumScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _PaymentMethodIcon extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _PaymentMethodIcon({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.white, size: 24),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white, fontSize: 10),
-        ),
-      ],
     );
   }
 }
@@ -504,22 +469,19 @@ class _FeatureItem extends StatelessWidget {
   }
 }
 
-/// Dialog with parental verification before payment
-class PaymentVerificationDialog extends StatefulWidget {
-  const PaymentVerificationDialog({super.key});
+/// Dialog with parental verification before purchase
+class ParentalGateDialog extends StatefulWidget {
+  const ParentalGateDialog({super.key});
 
   @override
-  State<PaymentVerificationDialog> createState() => _PaymentVerificationDialogState();
+  State<ParentalGateDialog> createState() => _ParentalGateDialogState();
 }
 
-class _PaymentVerificationDialogState extends State<PaymentVerificationDialog> {
-  bool _verified = false;
+class _ParentalGateDialogState extends State<ParentalGateDialog> {
   late int _num1;
   late int _num2;
   late int _correctAnswer;
   final _answerController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
   String? _errorMessage;
 
   @override
@@ -540,7 +502,7 @@ class _PaymentVerificationDialogState extends State<PaymentVerificationDialog> {
   void _checkAnswer() {
     final answer = int.tryParse(_answerController.text);
     if (answer == _correctAnswer) {
-      setState(() => _verified = true);
+      Navigator.pop(context, true);
     } else {
       setState(() {
         _errorMessage = 'Incorrect! Try again.';
@@ -549,30 +511,14 @@ class _PaymentVerificationDialogState extends State<PaymentVerificationDialog> {
     }
   }
 
-  void _proceedToPayment() {
-    Navigator.pop(context, {
-      'email': _emailController.text.trim(),
-      'phone': _phoneController.text.trim(),
-    });
-  }
-
   @override
   void dispose() {
     _answerController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_verified) {
-      return _buildParentalGate();
-    }
-    return _buildPaymentDetails();
-  }
-
-  Widget _buildParentalGate() {
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Column(
@@ -596,7 +542,7 @@ class _PaymentVerificationDialogState extends State<PaymentVerificationDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           const Text(
-            'Solve to continue with payment:',
+            'Solve to continue:',
             style: TextStyle(color: Colors.grey, fontSize: 13),
             textAlign: TextAlign.center,
           ),
@@ -646,106 +592,13 @@ class _PaymentVerificationDialogState extends State<PaymentVerificationDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.pop(context, false),
           child: const Text('Cancel'),
         ),
         ElevatedButton(
           onPressed: _checkAnswer,
           style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
           child: const Text('Verify', style: TextStyle(color: Colors.white)),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPaymentDetails() {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Row(
-        children: [
-          Icon(Icons.payment, color: Colors.green, size: 28),
-          SizedBox(width: 10),
-          Text('Payment Details'),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            'Enter your details (optional):',
-            style: TextStyle(color: Colors.grey, fontSize: 13),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(
-              labelText: 'Email',
-              hintText: 'your@email.com',
-              prefixIcon: const Icon(Icons.email_outlined),
-              filled: true,
-              fillColor: Colors.grey.shade100,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _phoneController,
-            keyboardType: TextInputType.phone,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: InputDecoration(
-              labelText: 'Phone',
-              hintText: '9876543210',
-              prefixIcon: const Icon(Icons.phone_outlined),
-              filled: true,
-              fillColor: Colors.grey.shade100,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.green.shade50,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.green),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'You will be redirected to Razorpay secure payment gateway',
-                    style: TextStyle(fontSize: 12, color: Colors.green.shade700),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton.icon(
-          onPressed: _proceedToPayment,
-          icon: const Icon(Icons.payment, color: Colors.white),
-          label: Text(
-            'Pay ${RazorpayService.premiumPriceDisplay}',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          ),
         ),
       ],
     );

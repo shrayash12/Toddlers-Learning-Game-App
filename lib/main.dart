@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 import 'services/premium_service.dart';
-import 'services/razorpay_service.dart';
+import 'services/billing_service.dart';
 import 'services/screen_lock_service.dart';
 import 'services/play_timer_service.dart';
 import 'widgets/screen_lock_wrapper.dart';
@@ -10,7 +10,7 @@ import 'widgets/play_timer_widgets.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await PremiumService().initialize();
-  await RazorpayService().initialize();
+  await BillingService().initialize();
   await ScreenLockService().initialize();
   await PlayTimerService().initialize();
   runApp(const BabyGamesApp());

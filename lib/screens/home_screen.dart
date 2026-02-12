@@ -20,7 +20,7 @@ import 'potty_training_game_screen.dart';
 import 'organizing_game_screen.dart';
 import 'coloring_game_screen.dart';
 import '../services/premium_service.dart';
-import '../services/razorpay_service.dart';
+import '../services/billing_service.dart';
 import '../widgets/screen_lock_wrapper.dart';
 import '../widgets/play_timer_widgets.dart';
 
@@ -33,20 +33,20 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final PremiumService _premiumService = PremiumService();
-  final RazorpayService _razorpayService = RazorpayService();
+  final BillingService _billingService = BillingService();
   late AnimationController _floatController;
   late AnimationController _pulseController;
   late AnimationController _wiggleController;
   late AnimationController _starController;
 
   // Check if user has premium from either service
-  bool get _isPremium => _premiumService.isPremium || _razorpayService.isPremium;
+  bool get _isPremium => _premiumService.isPremium || _billingService.isPremium;
 
   @override
   void initState() {
     super.initState();
     _premiumService.addListener(_onPremiumChange);
-    _razorpayService.addListener(_onPremiumChange);
+    _billingService.addListener(_onPremiumChange);
 
     // Floating animation
     _floatController = AnimationController(
@@ -76,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void dispose() {
     _premiumService.removeListener(_onPremiumChange);
-    _razorpayService.removeListener(_onPremiumChange);
+    _billingService.removeListener(_onPremiumChange);
     _floatController.dispose();
     _pulseController.dispose();
     _wiggleController.dispose();
