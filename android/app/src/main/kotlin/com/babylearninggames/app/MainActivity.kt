@@ -1,4 +1,4 @@
-package com.example.babygamesdemo
+package com.babylearninggames.app
 
 import io.flutter.embedding.android.FlutterActivity
 

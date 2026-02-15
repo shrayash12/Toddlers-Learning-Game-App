@@ -47,32 +47,38 @@ class BillingService extends ChangeNotifier {
   static const String _premiumKey = 'billing_premium_unlocked';
 
   Future<void> initialize() async {
-    // Load saved premium status first
-    final prefs = await SharedPreferences.getInstance();
-    _isPremium = prefs.getBool(_premiumKey) ?? false;
+    try {
+      // Load saved premium status first
+      final prefs = await SharedPreferences.getInstance();
+      _isPremium = prefs.getBool(_premiumKey) ?? false;
 
-    // Check if billing is available
-    _isAvailable = await _inAppPurchase.isAvailable();
+      // Check if billing is available
+      _isAvailable = await _inAppPurchase.isAvailable();
 
-    if (!_isAvailable) {
-      debugPrint('In-app purchases not available');
+      if (!_isAvailable) {
+        debugPrint('In-app purchases not available');
+        notifyListeners();
+        return;
+      }
+
+      // Listen to purchase updates
+      _subscription = _inAppPurchase.purchaseStream.listen(
+        _onPurchaseUpdate,
+        onDone: () => _subscription?.cancel(),
+        onError: (error) {
+          debugPrint('Purchase stream error: $error');
+        },
+      );
+
+      // Load products
+      await _loadProducts();
+
       notifyListeners();
-      return;
+    } catch (e) {
+      debugPrint('Billing initialization error: $e');
+      _isAvailable = false;
+      notifyListeners();
     }
-
-    // Listen to purchase updates
-    _subscription = _inAppPurchase.purchaseStream.listen(
-      _onPurchaseUpdate,
-      onDone: () => _subscription?.cancel(),
-      onError: (error) {
-        debugPrint('Purchase stream error: $error');
-      },
-    );
-
-    // Load products
-    await _loadProducts();
-
-    notifyListeners();
   }
 
   Future<void> _loadProducts() async {
