@@ -318,14 +318,23 @@ class _PremiumScreenState extends State<PremiumScreen> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Text(
-                              _billingService.displayPrice,
-                              style: const TextStyle(
-                                fontSize: 42,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
-                              ),
-                            ),
+                            _billingService.displayPrice != null
+                                ? Text(
+                                    _billingService.displayPrice!,
+                                    style: const TextStyle(
+                                      fontSize: 42,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green,
+                                    ),
+                                  )
+                                : const SizedBox(
+                                    height: 50,
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        color: Colors.green,
+                                      ),
+                                    ),
+                                  ),
                             const Text(
                               'One-time purchase \u2022 Lifetime access',
                               style: TextStyle(

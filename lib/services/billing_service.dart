@@ -10,13 +10,14 @@ class BillingService extends ChangeNotifier {
 
   // Product ID - Must match what you create in Google Play Console
   static const String premiumProductId = 'premium_bundle';
-  static const String premiumPriceDisplay = '₹299';
-
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
   StreamSubscription<List<PurchaseDetails>>? _subscription;
 
   bool _isAvailable = false;
   bool get isAvailable => _isAvailable;
+
+  bool _productsLoaded = false;
+  bool get productsLoaded => _productsLoaded;
 
   bool _isPremium = false;
   bool get isPremium => _isPremium;
@@ -38,7 +39,7 @@ class BillingService extends ChangeNotifier {
     }
   }
 
-  String get displayPrice => premiumProduct?.price ?? premiumPriceDisplay;
+  String? get displayPrice => premiumProduct?.price;
 
   // Callbacks
   Function()? onPurchaseSuccess;
@@ -98,6 +99,7 @@ class BillingService extends ChangeNotifier {
       }
 
       _products = response.productDetails;
+      _productsLoaded = true;
       debugPrint('Loaded ${_products.length} products');
     } catch (e) {
       debugPrint('Exception loading products: $e');
