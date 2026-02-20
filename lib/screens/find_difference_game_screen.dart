@@ -233,22 +233,29 @@ class _FindDifferenceGameScreenState extends State<FindDifferenceGameScreen> {
                     top: diff.y * size.height - 25,
                     child: GestureDetector(
                       onTap: () => _onDifferenceTapped(diffIndex),
-                      child: Stack(
-                        children: [
-                          Text(diff.emoji, style: const TextStyle(fontSize: 40)),
-                          if (isFound)
-                            Container(
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.green, width: 3),
-                              ),
-                              child: const Center(
-                                child: Icon(Icons.check, color: Colors.green, size: 30),
-                              ),
+                      behavior: HitTestBehavior.opaque,
+                      child: SizedBox(
+                        width: 50,
+                        height: 50,
+                        child: Stack(
+                          children: [
+                            Center(
+                              child: Text(diff.emoji, style: const TextStyle(fontSize: 40)),
                             ),
-                        ],
+                            if (isFound)
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.green, width: 3),
+                                ),
+                                child: const Center(
+                                  child: Icon(Icons.check, color: Colors.green, size: 30),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -258,8 +265,15 @@ class _FindDifferenceGameScreenState extends State<FindDifferenceGameScreen> {
                   left: item.x * size.width - 25,
                   top: item.y * size.height - 25,
                   child: GestureDetector(
-                    onTap: _onWrongTap,
-                    child: Text(item.emoji, style: const TextStyle(fontSize: 40)),
+                    onTap: isRight ? _onWrongTap : null,
+                    behavior: HitTestBehavior.opaque,
+                    child: SizedBox(
+                      width: 50,
+                      height: 50,
+                      child: Center(
+                        child: Text(item.emoji, style: const TextStyle(fontSize: 40)),
+                      ),
+                    ),
                   ),
                 );
               }),
