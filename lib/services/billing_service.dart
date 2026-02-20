@@ -53,16 +53,7 @@ class BillingService extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       _isPremium = prefs.getBool(_premiumKey) ?? false;
 
-      // Check if billing is available
-      _isAvailable = await _inAppPurchase.isAvailable();
-
-      if (!_isAvailable) {
-        debugPrint('In-app purchases not available');
-        notifyListeners();
-        return;
-      }
-
-      // Listen to purchase updates
+      // Listen to purchase updates early
       _subscription = _inAppPurchase.purchaseStream.listen(
         _onPurchaseUpdate,
         onDone: () => _subscription?.cancel(),
@@ -70,6 +61,22 @@ class BillingService extends ChangeNotifier {
           debugPrint('Purchase stream error: $error');
         },
       );
+
+      // Check if billing is available (retry up to 3 times)
+      for (int i = 0; i < 3; i++) {
+        _isAvailable = await _inAppPurchase.isAvailable();
+        if (_isAvailable) break;
+        debugPrint('Billing not available, retry ${i + 1}/3...');
+        await Future.delayed(const Duration(seconds: 2));
+      }
+
+      if (!_isAvailable) {
+        debugPrint('In-app purchases not available after retries');
+        notifyListeners();
+        return;
+      }
+
+      debugPrint('Billing is available, loading products...');
 
       // Load products
       await _loadProducts();
@@ -101,6 +108,9 @@ class BillingService extends ChangeNotifier {
       _products = response.productDetails;
       _productsLoaded = true;
       debugPrint('Loaded ${_products.length} products');
+      for (var p in _products) {
+        debugPrint('Product: ${p.id}, price: ${p.price}, title: ${p.title}');
+      }
     } catch (e) {
       debugPrint('Exception loading products: $e');
       _errorMessage = 'Error loading products';
@@ -173,15 +183,23 @@ class BillingService extends ChangeNotifier {
   /// Purchase premium
   Future<void> purchasePremium() async {
     if (!_isAvailable) {
-      _errorMessage = 'Store not available';
-      notifyListeners();
-      onPurchaseError?.call(_errorMessage!);
-      return;
+      debugPrint('Purchase failed: Store not available');
+      // Try to reinitialize billing
+      _isAvailable = await _inAppPurchase.isAvailable();
+      if (!_isAvailable) {
+        _errorMessage = 'Google Play Store not available. Please install the app from Google Play.';
+        notifyListeners();
+        onPurchaseError?.call(_errorMessage!);
+        return;
+      }
+      // Reload products if billing just became available
+      await _loadProducts();
     }
 
     final product = premiumProduct;
     if (product == null) {
-      _errorMessage = 'Product not found. Please try again later.';
+      debugPrint('Purchase failed: Product "$premiumProductId" not found. Loaded products: ${_products.map((p) => p.id).toList()}');
+      _errorMessage = 'Product not found. Please check your internet connection and try again.';
       notifyListeners();
       onPurchaseError?.call(_errorMessage!);
       return;
@@ -194,12 +212,13 @@ class BillingService extends ChangeNotifier {
     final PurchaseParam purchaseParam = PurchaseParam(productDetails: product);
 
     try {
+      debugPrint('Starting purchase for product: ${product.id}, price: ${product.price}');
       // Use buyNonConsumable for one-time purchases like premium unlock
       await _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
     } catch (e) {
       debugPrint('Purchase error: $e');
       _purchasePending = false;
-      _errorMessage = 'Could not start purchase';
+      _errorMessage = 'Could not start purchase: $e';
       notifyListeners();
       onPurchaseError?.call(_errorMessage!);
     }
