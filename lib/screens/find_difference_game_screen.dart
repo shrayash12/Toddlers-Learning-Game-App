@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 class FindDifferenceGameScreen extends StatefulWidget {
   const FindDifferenceGameScreen({super.key});
@@ -11,6 +12,7 @@ class FindDifferenceGameScreen extends StatefulWidget {
 
 class _FindDifferenceGameScreenState extends State<FindDifferenceGameScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final FlutterTts _tts = FlutterTts();
   late ConfettiController _confettiController;
 
   int _currentLevel = 0;
@@ -101,32 +103,50 @@ class _FindDifferenceGameScreenState extends State<FindDifferenceGameScreen> {
   void initState() {
     super.initState();
     _confettiController = ConfettiController(duration: const Duration(seconds: 2));
+    _initTts();
+  }
+
+  Future<void> _initTts() async {
+    await _tts.setLanguage('en-US');
+    await _tts.setSpeechRate(0.4);
+    await _tts.setVolume(1.0);
+    await _tts.setPitch(1.2);
+  }
+
+  Future<void> _speak(String text) async {
+    await _tts.stop();
+    await _tts.speak(text);
   }
 
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _tts.stop();
     _confettiController.dispose();
     super.dispose();
   }
 
-  void _onDifferenceTapped(int diffIndex) async {
+  void _onDifferenceTapped(int diffIndex) {
     if (_foundDifferences.contains(diffIndex) || _levelComplete) return;
-
-    await _audioPlayer.play(AssetSource('sounds/correct.mp3'));
 
     setState(() {
       _foundDifferences.add(diffIndex);
     });
 
     final puzzle = _puzzles[_currentLevel];
+    final remaining = puzzle.differences.length - _foundDifferences.length;
+
+    if (remaining > 0) {
+      _speak('Good find! $remaining more to go!');
+    }
+
     if (_foundDifferences.length == puzzle.differences.length) {
       _completeLevel();
     }
   }
 
-  void _onWrongTap() async {
-    await _audioPlayer.play(AssetSource('sounds/incorrect.mp3'));
+  void _onWrongTap() {
+    _speak('Try again!');
   }
 
   void _completeLevel() async {
@@ -136,6 +156,7 @@ class _FindDifferenceGameScreenState extends State<FindDifferenceGameScreen> {
     });
 
     _confettiController.play();
+    await _speak('Amazing! You found all the differences!');
 
     await Future.delayed(const Duration(seconds: 2));
 
@@ -151,6 +172,7 @@ class _FindDifferenceGameScreenState extends State<FindDifferenceGameScreen> {
   }
 
   void _showWinDialog() {
+    _speak('You have eagle eyes! You found all the differences in every picture! Great job!');
     showDialog(
       context: context,
       barrierDismissible: false,

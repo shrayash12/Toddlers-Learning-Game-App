@@ -578,22 +578,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       subtitle: 'Find Animals',
                       icon: Icons.visibility,
                       color: Colors.pink.shade400,
-                      isPremium: _isPremium,
+                      isPremium: true, // TODO: restore _isPremium
                       delay: 6,
                       floatController: _floatController,
                       pulseController: _pulseController,
-                      onTap: () => _navigateToPremiumGame(context, const HideSeekGameScreen()),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HideSeekGameScreen())), // TODO: Add premium check back later
                     ),
                     _AnimatedPremiumCard(
                       title: 'Differences',
                       subtitle: 'Spot Changes',
                       icon: Icons.compare,
                       color: Colors.blueGrey.shade400,
-                      isPremium: _isPremium,
+                      isPremium: true, // TODO: restore _isPremium
                       delay: 7,
                       floatController: _floatController,
                       pulseController: _pulseController,
-                      onTap: () => _navigateToPremiumGame(context, const FindDifferenceGameScreen()),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FindDifferenceGameScreen())), // TODO: Add premium check back later
                     ),
                   ]),
                 ),
