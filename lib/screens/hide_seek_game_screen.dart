@@ -39,6 +39,18 @@ class _HideSeekGameScreenState extends State<HideSeekGameScreen>
     {'name': 'Panda', 'emoji': '🐼'},
     {'name': 'Fox', 'emoji': '🦊'},
     {'name': 'Lion', 'emoji': '🦁'},
+    {'name': 'Tiger', 'emoji': '🐯'},
+    {'name': 'Elephant', 'emoji': '🐘'},
+    {'name': 'Giraffe', 'emoji': '🦒'},
+    {'name': 'Zebra', 'emoji': '🦓'},
+    {'name': 'Penguin', 'emoji': '🐧'},
+    {'name': 'Frog', 'emoji': '🐸'},
+    {'name': 'Duck', 'emoji': '🦆'},
+    {'name': 'Owl', 'emoji': '🦉'},
+    {'name': 'Koala', 'emoji': '🐨'},
+    {'name': 'Pig', 'emoji': '🐷'},
+    {'name': 'Cow', 'emoji': '🐮'},
+    {'name': 'Sheep', 'emoji': '🐑'},
   ];
 
   final List<Map<String, dynamic>> _spots = [
@@ -48,6 +60,12 @@ class _HideSeekGameScreenState extends State<HideSeekGameScreen>
     {'emoji': '🪨', 'name': 'Rock', 'color': Colors.grey},
     {'emoji': '🌺', 'name': 'Flower', 'color': Colors.pink},
     {'emoji': '☁️', 'name': 'Cloud', 'color': Colors.blue},
+    {'emoji': '🌈', 'name': 'Rainbow', 'color': Colors.purple},
+    {'emoji': '⛺', 'name': 'Tent', 'color': Colors.teal},
+    {'emoji': '🚗', 'name': 'Car', 'color': Colors.red},
+    {'emoji': '🌵', 'name': 'Cactus', 'color': Colors.green},
+    {'emoji': '🍄', 'name': 'Mushroom', 'color': Colors.deepOrange},
+    {'emoji': '🏔️', 'name': 'Mountain', 'color': Colors.blueGrey},
   ];
 
   @override
