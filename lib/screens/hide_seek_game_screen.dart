@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 class HideSeekGameScreen extends StatefulWidget {
   const HideSeekGameScreen({super.key});
@@ -13,6 +14,7 @@ class HideSeekGameScreen extends StatefulWidget {
 class _HideSeekGameScreenState extends State<HideSeekGameScreen>
     with TickerProviderStateMixin {
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final FlutterTts _tts = FlutterTts();
   late ConfettiController _confettiController;
   final Random _random = Random();
 
@@ -23,6 +25,10 @@ class _HideSeekGameScreenState extends State<HideSeekGameScreen>
   int _totalToFind = 5;
   bool _showHint = false;
   int _hiddenSpotIndex = -1;
+  bool _isResetting = false;
+
+  late List<Map<String, String>> _shuffledAnimals;
+  int _animalIndex = 0;
 
   final List<Map<String, String>> _animals = [
     {'name': 'Cat', 'emoji': '🐱'},
@@ -48,18 +54,39 @@ class _HideSeekGameScreenState extends State<HideSeekGameScreen>
   void initState() {
     super.initState();
     _confettiController = ConfettiController(duration: const Duration(seconds: 2));
+    _shuffledAnimals = List.from(_animals)..shuffle(_random);
+    _animalIndex = 0;
+    _initTts();
     _startNewRound();
+  }
+
+  Future<void> _initTts() async {
+    await _tts.setLanguage('en-US');
+    await _tts.setSpeechRate(0.4);
+    await _tts.setVolume(1.0);
+    await _tts.setPitch(1.2);
+  }
+
+  Future<void> _speak(String text) async {
+    await _tts.stop();
+    await _tts.speak(text);
   }
 
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _tts.stop();
     _confettiController.dispose();
     super.dispose();
   }
 
   void _startNewRound() {
-    final animal = _animals[_random.nextInt(_animals.length)];
+    // Reshuffle when all animals have been shown
+    if (_animalIndex >= _shuffledAnimals.length) {
+      _shuffledAnimals.shuffle(_random);
+      _animalIndex = 0;
+    }
+    final animal = _shuffledAnimals[_animalIndex++];
     _currentAnimal = animal['name']!;
     _currentAnimalEmoji = animal['emoji']!;
 
@@ -84,33 +111,49 @@ class _HideSeekGameScreenState extends State<HideSeekGameScreen>
     _hiddenSpotIndex = _random.nextInt(_hidingSpots.length);
     _showHint = false;
     setState(() {});
+    _speak('Find the $_currentAnimal!');
   }
 
   void _onSpotTapped(int index) async {
-    if (_hidingSpots[index].isRevealed) return;
-
-    setState(() {
-      _hidingSpots[index].isRevealed = true;
-    });
+    if (_hidingSpots[index].isRevealed || _isResetting) return;
 
     if (index == _hiddenSpotIndex) {
       // Found the animal!
-      await _audioPlayer.play(AssetSource('sounds/correct.mp3'));
+      setState(() {
+        _hidingSpots[index].isRevealed = true;
+        _foundCount++;
+      });
+
       _confettiController.play();
-      _foundCount++;
+      await _speak('Yes! You found the $_currentAnimal! Great job!');
 
       if (_foundCount >= _totalToFind) {
         _showWinDialog();
       } else {
-        await Future.delayed(const Duration(milliseconds: 1500));
+        await Future.delayed(const Duration(milliseconds: 800));
         _startNewRound();
       }
     } else {
-      await _audioPlayer.play(AssetSource('sounds/incorrect.mp3'));
+      // Wrong spot — show ❌ briefly, then reset for another try
+      setState(() {
+        _hidingSpots[index].isRevealed = true;
+        _isResetting = true;
+      });
+      await _speak('Not here! Keep looking!');
+      await Future.delayed(const Duration(milliseconds: 900));
+      if (mounted) {
+        setState(() {
+          for (final spot in _hidingSpots) {
+            spot.isRevealed = false;
+          }
+          _isResetting = false;
+        });
+      }
     }
   }
 
   void _showWinDialog() {
+    _speak('Amazing! You found all the animals! You are a great seeker!');
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -145,6 +188,8 @@ class _HideSeekGameScreenState extends State<HideSeekGameScreen>
                 setState(() {
                   _foundCount = 0;
                 });
+                _shuffledAnimals.shuffle(_random);
+                _animalIndex = 0;
                 _startNewRound();
               },
               style: ElevatedButton.styleFrom(
@@ -339,6 +384,7 @@ class _HideSeekGameScreenState extends State<HideSeekGameScreen>
                         setState(() {
                           _showHint = true;
                         });
+                        _speak('Look behind the ${_hidingSpots[_hiddenSpotIndex].name}!');
                         Future.delayed(const Duration(seconds: 2), () {
                           if (mounted) {
                             setState(() {
